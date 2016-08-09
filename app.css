@@ -1,0 +1,19 @@
+html, body {
+  margin: 0;
+}
+
+.node {
+  position: absolute;
+  background: gray
+}
+
+#canvas {
+  
+}
+
+#debug {
+  font: 8pt monospace;
+  position: absolute;
+  top: 10px;
+  left: 10px; 
+}
