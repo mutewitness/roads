@@ -1,8 +1,8 @@
 /**
  * ================================================================================
- * app.js - road system generation example
+ * ROAD GENERATION AND MULTIPLE CONSTRAINTS
  * 
- * Demonstrates genetic algorithm for creating road systems based
+ * Demonstrates a genetic algorithm for creating road systems based
  * on cost function.
  * 
  * Uses Rambda to emphasize a purer functional programming style in JavaScript.
@@ -12,269 +12,336 @@
  * ================================================================================
  */
 
-function RoadSegment(from, to, quality)
-{
-    this.from = from
-    this.to   = to
-    this.quality = quality || RoadSegment.DIRT
-}
+// FIXME: R.mergeWith(..) is slow
 
-//================================================================================
+/**
+ * 
+ * The road system.
+ * 
+ * A road system is a collection of segments.
+ * 
+ * Each segment has a .from and .to property, defining the line geometry
+ * of the road.
+ * 
+ */
 
-// Road quality types
+// --------------------------------------------------------------------------------
+//
+//  RoadSegment
+//
+// --------------------------------------------------------------------------------
 
-RoadSegment.DIRT                = 0
-RoadSegment.ROAD                = 1
-RoadSegment.HIGHWAY             = 2
 
-//================================================================================
+/**
+ * RoadSegment :: Point -> Point -> int -> RoadSegment
+ */
+const RoadSegment = (from, to, quality) => ({
+    from    : from,
+    to      : to,
+    quality : quality || RoadSegment.DIRT
+})
 
-// Road segment utility functions
 
-RoadSegment.keyOf               = (s) => RoadSegment.keyOfAB(s.from, s.to)
+// Road qualities
 
-RoadSegment.keyOfAB             = (a, b) =>
-{
-    var order  = (a.y < b.y || (a.y == b.y && a.x < b.x)),
-        first  = order ? a : b,
-        second = order ? b : a
+RoadSegment.DIRT     = 0
+RoadSegment.ROAD     = 1
+RoadSegment.HIGHWAY  = 2
+
+
+/**
+ * length :: Segment -> float
+ */
+RoadSegment.distance = (s) =>
+    pointPointDistance(s.from, s.to)
+
+    
+/**
+ * distanceToPoint :: Point -> RoadSegment -> int
+ * 
+ * Get shortest distance from this segment to given point.
+ * @param p The point.
+ * @param s The segment.
+ * @returns Distance
+ */
+RoadSegment.distanceToPoint = (p, s) =>
+    pointLineDistance(p, s.from, s.to)
+
+  
+/**
+ * equals :: RoadSegment -> RoadSegment -> bool
+ * 
+ * Compares the two given segments for equality.
+ * It is invariant to swapping of the .from and .to properties.
+ * The quality of the segment is not considered.
+ */
+RoadSegment.equals = (a, b) =>
+    (a.from.equals(b.from) && a.to.equals(b.to))
+ || (a.from.equals(b.to) && a.to.equals(b.from))
+
+   
+/**
+ * isEmpty :: RoadSegment -> bool
+ * 
+ * Checks if given segment is empty.
+ * A segment is considered empty if its from and to properties are equal.
+ */
+RoadSegment.isEmpty = (s) =>
+    s.from.equals(s.to)
+
+                      
+/**
+ * intersection :: RoadSegment -> RoadSegment -> Point
+ * 
+ * Returns intersection point between the two given segments
+ * or NULL if the segments do not intersect.
+ * Note that sharing of a vertex is not considered as an intersection.
+ */
+RoadSegment.intersection = (other, s) =>
+    lineLineIntersection(s.from, s.to, other.from, other.to)
+    
+
+/**
+ * keyOf :: RoadSegment -> string
+ * 
+ * Computes a key identifying this segment.
+ * It is invariant to swapping of the .from and .to properties.
+ * The quality of the segment is not considered. 
+ */
+RoadSegment.keyOf = (s) =>
+    RoadSegment.keyOfAB(s.from, s.to)
+
+        
+/**
+ * keyOfAB :: Point -> Point -> string 
+ * 
+ * Computes a key identifying the segment given
+ * by the two points.
+ * The order of the two points are irrelevant.
+ */
+RoadSegment.keyOfAB = (a, b) => {
+    const order  = (a.y < b.y || (a.y == b.y && a.x < b.x))
+    const first  = order ? a : b
+    const second = order ? b : a
     return (first.x+'|'+first.y+'|'+second.x+'|'+second.y)
 }
 
-RoadSegment.equals              = (a, b) => (a.from.equals(b.from) && a.to.equals(b.to))
-                                         || (a.from.equals(b.to) && a.to.equals(b.from))
+    
+/**
+ * vertices :: [RoadSegment] -> [Point]
+ */
+RoadSegment.vertices = (segments) =>
+    R.uniqWith( (a, b) => a.equals(b),
+                R.ap([R.prop('from'), R.prop('to')], segments) )
 
-RoadSegment.isEmpty             = (s) => (s) => s.from.equals(s.to)
+    
+// --------------------------------------------------------------------------------
+//
+//  RoadSystem
+//
+// --------------------------------------------------------------------------------
 
-//================================================================================
-
-// Road segment prototype functions
 
 /**
- * Get shortest distance from this segment to given point.
- * @param p Point
- * @returns Distance
+ * RoadSystem :: RoadSystem
  */
-RoadSegment.prototype.distanceToPoint = function(p)
-{
-    return pointToLineDistance(
-            p.x, p.y,
-            this.from.x,
-            this.from.y,
-            this.to.x,
-            this.to.y)
-}
+const RoadSystem = () => ({
+        connectionMap: {},
+        segments: [],
+        segmentMap: {}
+    })
 
+    
 /**
- * @param other
- * @returns True if segments intersect.
+ * keyOfPoint :: Point -> string
  */
-RoadSegment.prototype.intersection = function(other)
+RoadSystem.keyOfPoint = (p) =>
+    (p.x + '|' + p.y)
+
+        
+/**
+ * addSegment :: RoadSegment -> RoadSystem -> RoadSystem
+ */
+RoadSystem.addSegment = (segment, roadSystem) =>
 {
-    var a1 = this.from,
-        a2 = this.to,
-        b1 = other.from,
-        b2 = other.to,
-        ua_t = (b2.x - b1.x) * (a1.y - b1.y) - (b2.y - b1.y) * (a1.x - b1.x),
-        ub_t = (a2.x - a1.x) * (a1.y - b1.y) - (a2.y - a1.y) * (a1.x - b1.x),
-        u_b  = (b2.y - b1.y) * (a2.x - a1.x) - (b2.x - b1.x) * (a2.y - a1.y)
-
-    if (u_b != 0) {
-        var ua = ua_t / u_b;
-        var ub = ub_t / u_b;
-
-        if ( 0 <= ua && ua <= 1 && 0 <= ub && ub <= 1 ) {
-            if (0 == ua || 1 == ua) {
-                // perfect connection; threat it as non-intersecting.
-                return null;
-            }
-            
-            return new Point(
-                    a1.x + ua * (a2.x - a1.x),
-                    a1.y + ua * (a2.y - a1.y))
-        } else {
-            return null
-        }
-    } else {
-        // if ua_t or ub_t equals 0, it's a coincident.
-        // otherwise the lines are parallel.
-        return null
+    if (RoadSegment.isEmpty(segment)) {
+        return roadSystem
     }
-}
-
-/**
- * Tests if this road segment intersects the given segment.
- * If the segments share a vertex but do not cross, false is returned.
- * @param other
- * @returns True if segments intersect.
- */
-RoadSegment.prototype.intersects = function(other)
-{
-    return (null !== this.intersection(other))
-}
-
-//================================================================================
-
-/**
- * Road system.
- */
-function RoadSystem()
-{
-    this.segmentMap    = {}
-    this.connectionMap = {}
-}
-
-//================================================================================
-
-// some helper functions
-RoadSystem.keyOfPoint           = (p) => (p.x+'|'+p.y)
-
-//================================================================================
-
-RoadSystem.P=20;
-
-/**
- * Add road segment to system.
- * @param segment Segment to add.
- * @returns New RoadSystem
- */
-RoadSystem.prototype.addSegment = function(segment)
-{
-    var existingSegments        = this.segments(),
-        normalizeIntersection   = (intersection) => intersection ? new Point(Math.round(intersection.x), Math.round(intersection.y)) : null,
-        intersections           = R.map((other) => normalizeIntersection(other.intersection(segment)), existingSegments),
-        intersectsWith          = R.findIndex((intersection) => null !== intersection, intersections),
-        addConnectionToMap      = (a, b, tbl) => R.mergeWith(R.concat, tbl, R.objOf(RoadSystem.keyOfPoint(a), [b])),
-        addConnectionToSystem   = (a, b) => (roadSystem) => R.assoc('connectionMap', addConnectionToMap(a, b, roadSystem.connectionMap), roadSystem),
-        addSegmentToMap         = (roadSystem) => R.assoc('segmentMap', R.assoc(RoadSegment.keyOf(segment), segment, roadSystem.segmentMap))(roadSystem),
-        addSegmentToSystem      = R.compose( addConnectionToSystem(segment.from, segment.to),
-                                             addConnectionToSystem(segment.to, segment.from),
-                                             addSegmentToMap ) 
+    
+    const intersections  = roadSystem.segments.map(R.compose(roundPoint, RoadSegment.intersection(segment)))
+    const intersectsWith = R.findIndex((x) => null !== x, intersections)
 
     if (-1 != intersectsWith)
     {
-        var u = existingSegments[intersectsWith].from,
-            v = existingSegments[intersectsWith].to,
-            intersection = intersections[intersectsWith]
-            
-        return this.removeSegment(existingSegments[intersectsWith])
-                   .addSegment(new RoadSegment(segment.from, intersection, segment.type))
-                   .addSegment(new RoadSegment(segment.to, intersection, segment.type))
-                   .addSegment(new RoadSegment(existingSegments[intersectsWith].from, intersection, segment.type))
-                   .addSegment(new RoadSegment(existingSegments[intersectsWith].to, intersection, segment.type))
-    }
-                                             
-    return (-1 != intersectsWith) ? this : addSegmentToSystem(this)
-}
-
-/**
- * 
- */
-RoadSystem.prototype.changeRoadQuality = function(segment, newQuality)
-{
-    return this.removeSegment(segment).addSegment(R.assoc('quality', newQuality, segment))
-}
-
-/**
- * @param p
- * @returns
- */
-RoadSystem.prototype.findSegment = function(a, b)
-{
-    return this.segmentMap[RoadSegment.keyOfAB(a, b)]
-}
-
-/**
- * @param a
- * @param b
- */
-RoadSystem.prototype.movePoint = function(a, b, createIntersection)
-{
-    var k                       = RoadSystem.keyOfPoint(a),
-        oldSegments             = this.connectionMap[k].map((c) => this.findSegment(a, c)),
-        newSegments             = this.connectionMap[k].map((c) => new RoadSegment(b, c, this.findSegment(a, c).quality)),
-        movePoint               = R.compose( R.reduce((acc, x) => acc.addSegment(x), R.__, newSegments),
-                                             R.reduce((acc, x) => acc.removeSegment(x), R.__, oldSegments))
+        /* New segment intersects with an existing one.
+           Remove the found conflicting segment and
+           re-add all sub- segments. */
         
-    // TODO: test implementation of createIntersection
-    return (createIntersection)
-        ? movePoint(this).addSegment(new RoadSegment(a, b))
-        : movePoint(this)
+        const u = roadSystem.segments[intersectsWith].from
+        const v = roadSystem.segments[intersectsWith].to
+        const intersection = intersections[intersectsWith]
+            
+        return R.pipe(
+                RoadSystem.removeSegment(roadSystem.segments[intersectsWith]),
+                RoadSystem.addSegment(RoadSegment(segment.from, intersection, segment.type)),
+                RoadSystem.addSegment(RoadSegment(segment.to, intersection, segment.type)),
+                RoadSystem.addSegment(RoadSegment(roadSystem.segments[intersectsWith].from, intersection, segment.type)),
+                RoadSystem.addSegment(RoadSegment(roadSystem.segments[intersectsWith].to, intersection, segment.type))
+                )(roadSystem)
+               
+    } else {
+        return RoadSystem.addNonIntersectingSegment(segment, roadSystem)
+    }
 }
 
+
 /**
- * Returns the distance between two points.
+ * addNonIntersectingSegment :: RoadSegment -> RoadSystem -> RoadSystem
  * 
- * @param a First point
- * @param b Secondary point
- * @returns
+ * Add road segment to system.
  */
-RoadSystem.prototype.path = function(a, b)
+RoadSystem.addNonIntersectingSegment = (segment, roadSystem) =>
+{
+    const addConnectionToMap      = (a, b) => (tbl) => R.mergeWith(R.concat, tbl, R.objOf(RoadSystem.keyOfPoint(a), [b]))
+    const addConnectionToSystem   = (a, b) => RoadSystem.updateConnectionMap(addConnectionToMap(a, b))
+    const addSegmentToMap         = RoadSystem.updateSegmentMap(R.assoc(RoadSegment.keyOf(segment), segment))
+
+    return R.compose(
+            addConnectionToSystem(segment.from, segment.to),
+            addConnectionToSystem(segment.to, segment.from),
+            addSegmentToMap
+            )(roadSystem)
+}
+
+
+/**
+ * changeRoadQuality :: int -> RoadSegment-> RoadSystem -> RoadSystem
+ */
+RoadSystem.changeRoadQuality = (newQuality, segment) =>
+    R.pipe(RoadSystem.removeSegment(segment),
+           RoadSystem.addSegment(R.assoc('quality', newQuality, segment)))
+
+
+/**
+ * findSegment :: Point -> Point -> RoadSystem -> RoadSegment
+ */
+RoadSystem.findSegment = (a, b, roadSystem) =>
+    roadSystem.segmentMap[RoadSegment.keyOfAB(a, b)]
+
+        
+/**
+ * moveVertex :: Point -> Point -> bool -> RoadSystem -> RoadSystem
+ */
+RoadSystem.moveVertex = (a, b, roadSystem) =>
+{
+    const k = RoadSystem.keyOfPoint(a)
+    const oldSegments = roadSystem.connectionMap[k].map(RoadSystem.findSegment(a, R.__, roadSystem))
+    const newSegments = roadSystem.connectionMap[k].map((c) => RoadSegment(b, c, RoadSystem.findSegment(a, c, roadSystem).quality))
+        
+    return R.compose(
+        R.reduce(R.flip(RoadSystem.addSegment), R.__, newSegments),
+        R.reduce(R.flip(RoadSystem.removeSegment), R.__, oldSegments)
+      )(roadSystem)
+}
+
+
+/**
+ * path :: Point -> Point -> RoadSystem -> [Point]
+ */
+RoadSystem.path = (a, b, roadSystem) =>
 {
     /* recursively concatenate list of nearest nodes,
        until we reach encounter node b or there is no
        node left that is closer to the target node
        except the lastly added node itself. */ 
 
-    var connectionsAt           = (p) => (this.connectionMap[RoadSystem.keyOfPoint(p)] || []),
-        distanceToTarget        = (p) => p.getDistance(b),
-        stopAt                  = (x, y) => (!x.equals(y)) ? y : undefined,
-        nearestConnection       = (x) => stopAt(x, R.reduce(R.minBy(distanceToTarget), x, connectionsAt(x))),
-        nextPoint               = (x) => (undefined !== x) ? ([x].concat(nextPoint(nearestConnection(x)))) : []
+    const connectionsAt       = (p) => (roadSystem.connectionMap[RoadSystem.keyOfPoint(p)] || [])
+    const distanceToTarget    = (p) => pointPointDistance(p, b)
+    const stopAt              = (x, y) => (!x.equals(y)) ? y : undefined
+    const nearestConnection   = (x) => stopAt(x, R.reduce(R.minBy(distanceToTarget), x, connectionsAt(x)))
+    const nextPoint           = (x) => (undefined !== x) ? ([x].concat(nextPoint(nearestConnection(x)))) : []
         
     return nextPoint(a)
 }
 
-/**
- * 
- */
-RoadSystem.prototype.removePoint = function(p)
-{
-    var k                       = RoadSystem.keyOfPoint(p),
-        segmentsToRemove        = this.connectionMap[k].map((q) => this.findSegment(p, q)),
-        newRoadQuality          = R.reduce(R.min, RoadSegment.HIGHWAY, R.pluck('quality', segmentsToRemove)),
-        segmentFactory          = (a) => new RoadSegment(a[0], a[1], newRoadQuality)
-        segmentsToAdd           = R.uniqWith(RoadSegment.equals, R.reject(RoadSegment.isEmpty, R.xprod(this.connectionMap[k], this.connectionMap[k]).map(segmentFactory))),
-        removeSegments          = (roadSystem) => R.reduce((acc, x) => acc.removeSegment(x), roadSystem, segmentsToRemove)
-        addSegments             = (roadSystem) => R.reduce((acc, x) => acc.addSegment(x), roadSystem, segmentsToAdd)
-        
-    return R.compose(removeSegments, addSegments)(this)
-}
 
 /**
- * Remove road segment from system.
- * @param segment Segment to remove.
- * @returns New RoadSystem
+ * removeSegment :: RoadSegment -> RoadSystem -> RoadSystem
  */
-RoadSystem.prototype.removeSegment = function(segment)
+RoadSystem.removeSegment = (segment, roadSystem) =>
 {
-    var removeFromMap           = (a, b, tbl) => R.mergeWith(R.flip(R.without), tbl, R.objOf(RoadSystem.keyOfPoint(a), [b])),
-        removeFromSystem        = (a, b) => (roadSystem) => R.assoc('connectionMap', removeFromMap(a, b, roadSystem.connectionMap))(roadSystem),
-        ifThisSegment           = (other) => (other === this.findSegment(segment.from, segment.to)),
-        removeSegmentFromMap    = (roadSystem) => R.assoc('segmentMap', R.dissoc(RoadSegment.keyOf(segment), roadSystem.segmentMap))(roadSystem),
-        removeSegmentFromSystem = R.compose(removeFromSystem(segment.from, segment.to),
-                                            removeFromSystem(segment.to, segment.from),
-                                            removeSegmentFromMap)
+    //const removeFromMap       = (a, b) => (tbl) => R.mergeWith(R.flip(R.without), tbl, R.objOf(RoadSystem.keyOfPoint(a), [b]))
     
-    return removeSegmentFromSystem(this)
+    function removeFromMap(a, b) {
+        return (tbl) => {
+            const k = RoadSystem.keyOfPoint(a)
+            return (tbl[k]) ? (() => {
+                const newList = R.without([b], tbl[k])
+                return (newList.length > 0)
+                    ? R.assoc(k, newList, tbl)
+                    : R.dissoc(k, tbl)
+            })() : tbl;
+        }
+    }
+    
+    const removeFromSystem    = (a, b) => RoadSystem.updateConnectionMap(removeFromMap(a, b))
+    const removeSegmentFromMap= RoadSystem.updateSegmentMap(R.dissoc(RoadSegment.keyOf(segment)))
+    
+    return R.compose(
+        removeFromSystem(segment.from, segment.to),
+        removeFromSystem(segment.to, segment.from),
+        removeSegmentFromMap
+        )(roadSystem)
 }
 
-/**
- * 
- */
-RoadSystem.prototype.segments = function()
-{
-    return R.values(this.segmentMap)
-}
 
 /**
- * 
+ * removeVertex :: Point -> RoadSystem -> RoadSystem
  */
-RoadSystem.prototype.vertices = function()
+RoadSystem.removeVertex = (p, roadSystem) =>
 {
-    var segments = this.segments(), 
-        a        = R.pluck('from', segments),
-        b        = R.pluck('to', segments)
+    const k                   = RoadSystem.keyOfPoint(p)
+    const segmentsToRemove    = roadSystem.connectionMap[k].map(RoadSystem.findSegment(p, R.__, roadSystem))
+    const lowestRoadQuality   = R.reduce(R.min, RoadSegment.HIGHWAY, R.pluck('quality', segmentsToRemove))
+    const segmentFromLink     = (a) => RoadSegment(a[0], a[1], lowestRoadQuality)
+    const allMissingLinks     = R.xprod(roadSystem.connectionMap[k], roadSystem.connectionMap[k])
+    const allMissingSegments  = allMissingLinks.map(segmentFromLink)
+    const withoutEmpty        = R.reject(RoadSegment.isEmpty)
+    const withoutDuplicates   = R.uniqWith(RoadSegment.equals)
+    const segmentsToAdd       = withoutEmpty(withoutDuplicates(allMissingSegments))
+    const removeSegments      = (roadSystem) => R.reduce(R.flip(RoadSystem.removeSegment), roadSystem, segmentsToRemove)
+    const addSegments         = (roadSystem) => R.reduce(R.flip(RoadSystem.addSegment), roadSystem, segmentsToAdd)
         
-    return R.uniqWith((a, b) => a.equals(b), R.concat(a, b))
+    return (segmentsToAdd.length <= 1) // TODO: review limit.
+        ? addSegments(removeSegments(roadSystem))
+        : removeSegments(roadSystem)
 }
+
+
+/**
+ * updateConnectionMap :: (object -> object) -> RoadSystem -> RoadSystem
+ */
+RoadSystem.updateConnectionMap = (f, roadSystem) =>
+    R.assoc('connectionMap', f(roadSystem.connectionMap))(roadSystem)
+        
+
+/**
+ * updateSegmentMap :: (object -> object) -> RoadSystem -> RoadSystem
+ */
+RoadSystem.updateSegmentMap = (f, roadSystem) =>
+{
+    const newMap = f(roadSystem.segmentMap)
+    return R.compose(
+        R.assoc('segmentMap', newMap),
+        R.assoc('segments', R.values(newMap))
+        )(roadSystem)
+                           
+}
+        
+        
+// --------------------------------------------------------------------------------
+    
+curryAll(RoadSystem)
+curryAll(RoadSegment)
+
+// --------------------------------------------------------------------------------

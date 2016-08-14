@@ -2,18 +2,57 @@ html, body {
   margin: 0;
 }
 
+body, h1, h2, h3 {
+  font: 11pt Roboto;
+  color: #808080;
+}
+
 .node {
   position: absolute;
   background: gray
 }
 
 #canvas {
-  
+  position: absolute;
+  left: 300px;
+  top: 25px;
 }
 
-#debug {
-  font: 8pt monospace;
+#options {
   position: absolute;
-  top: 10px;
-  left: 10px; 
+  width: 200px;
+  top: 25px;
+  left: 25px;
+}
+
+#evolutions {
+  color: black;
+  font-weight: bold;
+}
+
+p {
+  font-size: 8pt;
+  margin: 15px 0;
+}
+
+hr {
+  border: none;
+  border-top: 1px solid #eeeeee;
+  margin: 25px 0;
+}
+
+h1, h2, h3 {
+  text-transform: uppercase;
+}
+
+h1 {
+  color: #0080ff;
+}
+
+h2 {
+  font-weight: normal;
+}
+
+input[type=range] {
+  width: 100%;
 }
