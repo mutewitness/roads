@@ -82,10 +82,17 @@ State.newState = (cfg) => R.pipe(
  */
 State.newTrainingSet = (s) =>
 {
-    /* for every city, pick target commute cities. */
-    const newSet = R.times(
-            () => [randomFromList(s.cities), randomFromList(s.cities)],
-            Math.ceil(3 * s.config.numCities)) 
+    /* for every city, pick a few target commute cities. */
+    
+    const targetCommuteCities = (origin) => {
+        const numDestinations = 3
+        const validDestinations = R.without([origin], s.cities)
+        return R.times(() => [origin, randomFromList(validDestinations)], numDestinations)
+    }
+    
+    const newSet = R.reduce(
+            (acc, value) => acc.concat(targetCommuteCities(value)),
+            [], s.cities)
     
     return State.evaluate(
         R.assoc('trainingSet', newSet, s))
@@ -106,7 +113,7 @@ State.nextIteration = (weightFunction, s) =>
     {
         const newState     = State.evaluate(State.setRoadSystem(Evolution.newRoadSystem(s), s), s)
         const costFunction = (s) => R.sum(weightFunction(R.values(s.currentCost)))
-        const promote      = (costFunction(newState) <= costFunction(s))
+        const promote      = (costFunction(newState) < costFunction(s))
         return (promote) ? newState : s
     }
 

@@ -56,6 +56,29 @@ function lineLineIntersection(a1, a2, b1, b2)
     }
 }
 
+//function lineCircleIntersection(a, b, p, r)
+//{
+//    const eDistAtoB = a.getDistance(b)
+//    const d = new Point((b.x-a.x) / eDistAtoB, (b.y-a.y) / eDistAtoB)
+//    const t = (d.x * (p.x-a.x)) + (d.y * (p.y-a.y));
+//    const e = new Point((t * d.x) + a.x, (t * d.y) + a.y)
+//    const eDistCtoE = e.getDistance(p)
+//
+//    if (eDistCtoE < r) {
+//        const dt = Math.sqrt( Math.pow(r, 2) - Math.pow(eDistCtoE, 2))
+//        const f = new Point((t-dt) * d.x + a.x, (t-dt) * d.y + a.y)
+//        const g = new Point((t+dt) * d.x + a.x, (t+dt) * d.y + a.y)
+//
+//        const isOnLine = (a, b, c) => {
+//            return a.getDistance(b) == a.getDistance(c) + b.getDistance(c)
+//        }
+//        
+//        if (isOnLine(a, b, f) && isOnLine(a, b, g))
+//            return [f, g]
+//    }
+//    
+//    return null
+//}
 
 /**
  * @param a

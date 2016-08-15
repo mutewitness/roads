@@ -23,7 +23,7 @@ Evolution.newRoadSystem = (s) => {
     // TODO: variant extendSegment that connects to existing point around selected one?
     // TODO: split and change road quality?
     
-    const RANGE             = 5
+    const RANGE = 3
     const randomPointAround = (p, r) => p.add(new Point(-r+randomInt(2*r+1), -r+randomInt(2*r+1)))
         
     /**
@@ -73,6 +73,7 @@ Evolution.newRoadSystem = (s) => {
     /* mutation functions */
 
     const nudgeVertex       = (p) => RoadSystem.moveVertex(p, randomPointAround(p, RANGE))
+    // TODO: exclude current road quality as possibility.
     const changeRoadQuality = RoadSystem.changeRoadQuality(randomInt(RoadSegment.HIGHWAY+1))
     const extendSegment     = (p, quality) => RoadSystem.addSegment(RoadSegment(p, randomPointAround(p, RANGE), quality))
     

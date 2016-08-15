@@ -12,26 +12,7 @@
  * ================================================================================
  */
 
-window.onload = () =>
-{
-    /* setup Paper framework */
-    
-    paper.install(window)       // export paper classes into global namespace
-    paper.setup('canvas')
-    
-    /* setup affine transformation matrix for projecting map to screen coordinates. */
-    
-    GUI.projectionMatrix = new Matrix(10, 0, 0, 10, 0, 0)
-
-    var s = GUI.newState()
-    
-    /* setup event handlers */
-    
-    view.onFrame        = (event) => { s = GUI.nextIteration(s) }
-    view.onMouseDown    = (event) => { s = GUI.onMouseDown(event, s) }
-    view.onMouseUp      = (event) => { s = GUI.onMouseUp(event, s) }
-    view.onMouseDrag    = (event) => { s = GUI.onMouseDrag(event, s) }
-}
+window.onload = () => GUI.run()
 
 // --------------------------------------------------------------------------------
 
@@ -47,7 +28,7 @@ var GUI =
         cities: {
             sides: 5,
             radius: 7,
-            fillColor: 'rgba(255, 255, 255, 1)',
+            fillColor: 'white',
             strokeColor: 'rgba(0, 0, 0, .5)',
             strokeWidth: 1.5
         },
@@ -65,11 +46,11 @@ var GUI =
  * GUIState :: State -> GUIState
  */
 const GUIState = (s) => ({
-    appState: s,
-    layers: {}
+    appState    : s,
+    layers      : {},
+    running     : false
 })
     
-
 //--------------------------------------------------------------------------------
 //
 //  GUI functions
@@ -78,7 +59,6 @@ const GUIState = (s) => ({
 
 // All GUI functions are dirty in the sense that they produce side-effects
 // by using the Paper framework.
-
 
 /**
  * apply :: (State -> State) -> GUIState -> GUIState
@@ -106,13 +86,16 @@ GUI.applyCustomWeights = (xs) =>
  * createLayers :: GUIState -> GUIState 
  */
 GUI.createLayers = (s) =>
-    R.assoc('layers', {
-        map: new Layer({opacity:0.1}),
-        roads: new Layer(),
-        cities : new Layer(),
-    }, s)
-
+{
+    project.clear()
     
+    return R.assoc('layers', {
+        map     : new Layer({opacity:0.1}),
+        roads   : new Layer(),
+        cities  : new Layer(),
+    }, s)
+}
+
     
 /**
  * getConfig :: Config
@@ -121,7 +104,7 @@ GUI.getConfig = () => Config({
     evaluators  : [TravelTimeEvaluator,
                    FinancialEvaluator,
                    NoiseEvaluator],
-    numCities   : 20,
+    numCities   : 30,
     mapSize     : new Size(100, 80)
 })
     
@@ -135,7 +118,10 @@ GUI.newState = () => R.pipe(
         GUIState,
         GUI.createLayers,
         GUI.updateMap,
-        GUI.updateCities
+        GUI.updateCities,
+        GUI.updateRoads,
+        GUI.updateStatistics,
+        GUI.updateControls
         )()
 
 
@@ -156,6 +142,31 @@ GUI.nextIteration = (s) =>
             ? s
             : GUI.updateRoads(R.assoc('appState', newState, s)))
 }
+
+
+/**
+ * onButtonStartClicked
+ */
+GUI.onButtonStartClicked = (s) =>
+    GUI.updateControls(
+            R.over(R.lensProp('running'), R.not, s)
+            )
+
+
+/**
+ * onButtonStartClicked
+ */
+GUI.onButtonResetClicked = (s) =>
+    GUI.newState()
+    
+
+/**
+ * onFrame :: GUIState -> GUIState 
+ */
+GUI.onFrame = (s) =>
+    (s.running)
+        ? GUI.nextIteration(s)
+        : s
 
 
 /**
@@ -199,6 +210,38 @@ GUI.project = (p) =>
 
     
 /**
+ * run ::
+ */
+GUI.run = () =>
+{
+    /* setup Paper framework */
+    
+    paper.install(window)       // export paper classes into global namespace
+    paper.setup('canvas')
+    
+    /* setup affine transformation matrix for projecting map to screen coordinates. */
+    
+    GUI.projectionMatrix = new Matrix(10, 0, 0, 10, 0, 0)
+
+    var s = GUI.newState()
+    
+    /* setup event handlers */
+    
+    view.onFrame        = (event) => { s = GUI.onFrame(s) }
+    view.onMouseDown    = (event) => { s = GUI.onMouseDown(event, s) }
+    view.onMouseUp      = (event) => { s = GUI.onMouseUp(event, s) }
+    view.onMouseDrag    = (event) => { s = GUI.onMouseDrag(event, s) }
+    
+    document.getElementById('btn-start').addEventListener(
+            'click',
+            (event) => { s = GUI.onButtonStartClicked(s) })
+            
+    document.getElementById('btn-reset').addEventListener(
+            'click',
+            (event) => { s = GUI.onButtonResetClicked(s) })
+}
+    
+/**
  * unproject :: Point -> Point
  * Project point to map coordinates.
  */
@@ -225,25 +268,37 @@ GUI.updateCities = (s) =>
 
 
 /**
+ * updateStatistics :: GUIState -> GUIState
+ */
+GUI.updateControls = (s) =>
+{
+    document.getElementById('btn-start').innerText = s.running ? 'Pause' : 'Start';
+    return s
+}
+
+
+/**
  * updateMap :: GUIState -> GUIState
  * 
  * Create Paper.js objects for the map. 
  */
 GUI.updateMap = (s) =>
 {
-    const projectedSize = GUI.project(new Point(s.appState.config.mapSize))
+    const mapSize = s.appState.config.mapSize
+    
+    const projectedSize = GUI.project(new Point(mapSize))
     view.viewSize = new Size(projectedSize)
     
     const style                   = R.merge(GUI.styles.grid, {layer: s.layers.map})
-    const createVerticalLine      = (i) => [new Point(i, 0), new Point(i, s.appState.config.mapSize.height)]
-    const createHorizontalLine    = (i) => [new Point(0, i), new Point(s.appState.config.mapSize.width, i)]
+    const createVerticalLine      = (i) => [new Point(i, 0), new Point(i, mapSize.height)]
+    const createHorizontalLine    = (i) => [new Point(0, i), new Point(mapSize.width, i)]
     const createPath              = (lst) => new Path(R.merge(style, {segments: lst.map(GUI.project)}))
 
     s.layers.map.activate()
     s.layers.map.removeChildren()
     
-    R.times(R.compose(createPath, createVerticalLine), s.appState.config.mapSize.width)
-    R.times(R.compose(createPath, createHorizontalLine), s.appState.config.mapSize.height)
+    R.times(R.compose(createPath, createVerticalLine), mapSize.width)
+    R.times(R.compose(createPath, createHorizontalLine), mapSize.height)
     
     return s
 }

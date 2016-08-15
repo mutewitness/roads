@@ -12,8 +12,6 @@
  * ================================================================================
  */
 
-// FIXME: R.mergeWith(..) is slow
-
 /**
  * 
  * The road system.
@@ -146,10 +144,10 @@ RoadSegment.vertices = (segments) =>
  * RoadSystem :: RoadSystem
  */
 const RoadSystem = () => ({
-        connectionMap: {},
-        segments: [],
-        segmentMap: {}
-    })
+    connectionMap   : {}, // { string: [Point] }
+    segments        : [], // [RoadSegment]
+    segmentMap      : {}  // { string: RoadSegment } 
+})
 
     
 /**
@@ -168,28 +166,34 @@ RoadSystem.addSegment = (segment, roadSystem) =>
         return roadSystem
     }
     
-    const intersections  = roadSystem.segments.map(R.compose(roundPoint, RoadSegment.intersection(segment)))
-    const intersectsWith = R.findIndex((x) => null !== x, intersections)
+    /*
+     Determine if segment we try to add intersects
+     with any existing segment.
+       
+     If it does, remove the conflicting segment and
+     re-add all sub-segments, recursively calling
+     this function.
+      
+     If it doesn't, add the segment.
+     */
+    
+    const whereConflicting = (other) => null !== RoadSegment.intersection(segment, other)
+    const conflictingSegment = R.find(whereConflicting, roadSystem.segments)
 
-    if (-1 != intersectsWith)
+    if (conflictingSegment)
     {
-        /* New segment intersects with an existing one.
-           Remove the found conflicting segment and
-           re-add all sub- segments. */
+        const intersection = roundPoint(RoadSegment.intersection(segment, conflictingSegment))
         
-        const u = roadSystem.segments[intersectsWith].from
-        const v = roadSystem.segments[intersectsWith].to
-        const intersection = intersections[intersectsWith]
-            
         return R.pipe(
-                RoadSystem.removeSegment(roadSystem.segments[intersectsWith]),
+                RoadSystem.removeSegment(conflictingSegment),
                 RoadSystem.addSegment(RoadSegment(segment.from, intersection, segment.type)),
                 RoadSystem.addSegment(RoadSegment(segment.to, intersection, segment.type)),
-                RoadSystem.addSegment(RoadSegment(roadSystem.segments[intersectsWith].from, intersection, segment.type)),
-                RoadSystem.addSegment(RoadSegment(roadSystem.segments[intersectsWith].to, intersection, segment.type))
+                RoadSystem.addSegment(RoadSegment(conflictingSegment.from, intersection, segment.type)),
+                RoadSystem.addSegment(RoadSegment(conflictingSegment.to, intersection, segment.type))
                 )(roadSystem)
                
     } else {
+        
         return RoadSystem.addNonIntersectingSegment(segment, roadSystem)
     }
 }
@@ -230,7 +234,7 @@ RoadSystem.findSegment = (a, b, roadSystem) =>
 
         
 /**
- * moveVertex :: Point -> Point -> bool -> RoadSystem -> RoadSystem
+ * moveVertex :: Point -> Point -> RoadSystem -> RoadSystem
  */
 RoadSystem.moveVertex = (a, b, roadSystem) =>
 {
@@ -247,10 +251,15 @@ RoadSystem.moveVertex = (a, b, roadSystem) =>
 
 /**
  * path :: Point -> Point -> RoadSystem -> [Point]
+ * 
+ * Returns a path between the two given points.
+ * The first and last elements of the returned path
+ * are not necessarily equal to the first and second
+ * point given as arguments to this function.
  */
 RoadSystem.path = (a, b, roadSystem) =>
 {
-    /* recursively concatenate list of nearest nodes,
+    /* Recursively concatenate list of nearest nodes,
        until we reach encounter node b or there is no
        node left that is closer to the target node
        except the lastly added node itself. */ 
@@ -312,7 +321,7 @@ RoadSystem.removeVertex = (p, roadSystem) =>
     const removeSegments      = (roadSystem) => R.reduce(R.flip(RoadSystem.removeSegment), roadSystem, segmentsToRemove)
     const addSegments         = (roadSystem) => R.reduce(R.flip(RoadSystem.addSegment), roadSystem, segmentsToAdd)
         
-    return (segmentsToAdd.length <= 1) // TODO: review limit.
+    return (segmentsToAdd.length <= 1) // TODO: review limit (a simplified removeVertex() that does not rejoin broken links?) 
         ? addSegments(removeSegments(roadSystem))
         : removeSegments(roadSystem)
 }

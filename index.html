@@ -1,33 +1,36 @@
 <html>
   <head>
-    <script type='text/javascript' src='https://cdnjs.cloudflare.com/ajax/libs/ramda/0.21.0/ramda.js'></script>
-    <script type='text/javascript' src='https://cdnjs.cloudflare.com/ajax/libs/paper.js/0.10.2/paper-full.min.js'></script>
-    <script type='text/javascript' src='./util.js'></script>
-    <script type='text/javascript' src='./geometry.js'></script>
-    <script type='text/javascript' src='./state.js'></script>
-    <script type='text/javascript' src='./gui.js'></script>
-    <script type='text/javascript' src='./roadsystem.js'></script>
-    <script type='text/javascript' src='./evaluators.js'></script>
-    <script type='text/javascript' src='./evolution.js'></script>
+    <link href='//fonts.googleapis.com/css?family=Roboto' rel='stylesheet' type='text/css'>
+    <script type='text/javascript' src='//cdnjs.cloudflare.com/ajax/libs/ramda/0.21.0/ramda.js'></script>
+    <script type='text/javascript' src='//cdnjs.cloudflare.com/ajax/libs/paper.js/0.10.2/paper-full.min.js'></script>
     <link rel='stylesheet' type='text/css' href='app.css'/>
-    <link href='https://fonts.googleapis.com/css?family=Roboto' rel='stylesheet' type='text/css'>
+    <script type='text/javascript' src='util.js'></script>
+    <script type='text/javascript' src='geometry.js'></script>
+    <script type='text/javascript' src='state.js'></script>
+    <script type='text/javascript' src='gui.js'></script>
+    <script type='text/javascript' src='roadsystem.js'></script>
+    <script type='text/javascript' src='evaluators.js'></script>
+    <script type='text/javascript' src='evolution.js'></script>
   </head>
   <body>
     <div id='options'>
       <h1>Road generation and multiple constraints</h1>
       <hr/>
       <p>This application will attempt to find the most optimal way to connect roads between
-      the cities on the map as to minimize the cost.
+      the cities on the map as to minimize the cost function.
       <p>Use the sliders below to adjust how the cost is computed by changing the 
       respective weights given to certain characteristics of the solution.</p>
       <p>You can drag cities around.</p>
       <hr/>
-      <h2>Commute time</h2> <input type='range' id='w0' min="1" max="100"/>
-      <h2>Building costs</h2> <input type='range' id='w1' min="1" max="100"/>
-      <h2>Traffic noise</h2> <input type='range' id='w2' min="1" max="100"/>
+      <h2>Commute time</h2> <input type='range' id='w0' min='1' max='100'/>
+      <h2>Building costs</h2> <input type='range' id='w1' min='1' max='100'/>
+      <h2>Traffic noise</h2> <input type='range' id='w2' min='1' max='100'/>
       <hr/>
-      <p>Current generation: <span id='evolutions'></span>
-      <p>Note that converge to an acceptable solution can take a few thousand generations.</p>
+      <p>
+        <button id='btn-start'>...</button>
+        <button id='btn-reset'>Reset</button>
+      </p>
+      <p>Current generation: <span id='evolutions'></span></p>
       <hr/>
       <p>This application requires ECMAScript 2015 (6th edition) or higher.
       This is supported by Chrome (45.0), Gecko (22.0), Edge or Opera (32).</p>
