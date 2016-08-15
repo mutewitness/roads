@@ -18,7 +18,6 @@ window.onload = () => GUI.run()
 
 var GUI =
 {
-    selectedCity: -1,
     projectionMatrix: null,
     styles: {
         grid: {
@@ -48,7 +47,8 @@ var GUI =
 const GUIState = (s) => ({
     appState    : s,
     layers      : {},
-    running     : false
+    running     : false,
+    selectedCity: -1
 })
     
 //--------------------------------------------------------------------------------
@@ -105,7 +105,7 @@ GUI.getConfig = () => Config({
                    FinancialEvaluator,
                    NoiseEvaluator],
     numCities   : 30,
-    mapSize     : new Size(100, 80)
+    mapSize     : new Size(90, 60)
 })
     
 
@@ -164,7 +164,7 @@ GUI.onButtonResetClicked = (s) =>
  * onFrame :: GUIState -> GUIState 
  */
 GUI.onFrame = (s) =>
-    (s.running)
+    (s.running && -1 == s.selectedCity)
         ? GUI.nextIteration(s)
         : s
 

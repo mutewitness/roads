@@ -54,9 +54,10 @@ Evolution.newRoadSystem = (s) => {
     /**
      * splitAnd :: (Point -> RoadSegment -> RoadSystem -> RoadSystem) -> RoadSegment -> (RoadSystem -> RoadSystem)
      */
-    const splitAnd = (f) => (oldSegment) => {
+    const splitAnd = (f) => (oldSegment) =>
+    {
         const pointOnLine = (a, b, x) => roundPoint(a.add(b.subtract(a).multiply(x)))
-        const splitPoint  = randomPointAround(pointOnLine(oldSegment.from, oldSegment.to, Math.random()), RANGE)
+        const splitPoint  = pointOnLine(oldSegment.from, oldSegment.to, Math.random())
         return R.pipe(
             RoadSystem.removeSegment(oldSegment),
             RoadSystem.addSegment(RoadSegment(oldSegment.from, splitPoint, oldSegment.quality)),
@@ -73,8 +74,7 @@ Evolution.newRoadSystem = (s) => {
     /* mutation functions */
 
     const nudgeVertex       = (p) => RoadSystem.moveVertex(p, randomPointAround(p, RANGE))
-    // TODO: exclude current road quality as possibility.
-    const changeRoadQuality = RoadSystem.changeRoadQuality(randomInt(RoadSegment.HIGHWAY+1))
+    const changeRoadQuality = RoadSystem.changeRoadQuality(randomInt(RoadSegment.HIGHWAY+1)) // TODO: exclude current road quality as possibility.
     const extendSegment     = (p, quality) => RoadSystem.addSegment(RoadSegment(p, randomPointAround(p, RANGE), quality))
     
     /* pick random mutation and apply it to the road system */
