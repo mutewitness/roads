@@ -12,20 +12,16 @@
  * ================================================================================
  */
 
-/**
- * Geometry utility functions.
- * 
- * lineLineIntersection and pointLineDistance functions
- * are borrowed from unknown author.
+/*
+ Geometry utility functions.
+ 
+ lineLineIntersection and pointLineDistance functions
+ are borrowed from unknown author.
  */
 
 
 /**
- * @param a1
- * @param a2
- * @param b1
- * @param b2
- * @returns
+ * lineLineIntersection :: Point -> Point -> Point -> Point -> Point
  */
 function lineLineIntersection(a1, a2, b1, b2) 
 {
@@ -81,9 +77,7 @@ function lineLineIntersection(a1, a2, b1, b2)
 //}
 
 /**
- * @param a
- * @param b
- * @returns
+ * pointPointDistance :: Point -> Point -> float
  */
 function pointPointDistance(a, b)
 {
@@ -91,10 +85,7 @@ function pointPointDistance(a, b)
 }
 
 /**
- * @param p
- * @param a
- * @param b
- * @returns
+ * pointLineDistance :: Point -> Point -> Point -> float
  */
 function pointLineDistance(p, a, b)
 {
@@ -128,10 +119,41 @@ function pointLineDistance(p, a, b)
 
 
 /**
- * roundPoint :: Point? -> Point?
- * @param p
- * @returns
+ * roundPoint :: Point -> Point
  */
 function roundPoint(p) {
     return p ? new Point(Math.round(p.x), Math.round(p.y)) : null
+}
+
+/**
+ * raytrace :: Point -> Point -> [Point]
+ */
+function raytrace(a, b)
+{
+    const dx = Math.abs(b.x - a.x)
+    const dy = Math.abs(b.y - a.y)
+    const xInc = (b.x > a.x) ? 1 : -1
+    const yInc = (b.y > a.y) ? 1 : -1
+
+    var error = dx - dy
+    var x = a.x
+    var y = a.y
+    var n = 1 + dx + dy
+    
+    var tiles = []
+
+    for (; n > 0; --n)
+    {
+        tiles.push(new Point(x, y))
+
+        if (error > 0) {
+            x += xInc
+            error -= dy*2
+        } else {
+            y += yInc
+            error += dx*2
+        }
+    }
+    
+    return tiles
 }

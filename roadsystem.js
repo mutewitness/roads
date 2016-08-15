@@ -33,27 +33,37 @@
 /**
  * RoadSegment :: Point -> Point -> int -> RoadSegment
  */
-const RoadSegment = (from, to, quality) => ({
-    from    : from,
-    to      : to,
-    quality : quality || RoadSegment.DIRT
+const RoadSegment = (from, to, quality) => (
+{
+    /**
+     * from :: Point
+     */
+    from: from,
+    
+    /**
+     * to :: Point
+     */
+    to: to,
+    
+    /**
+     * quality :: int
+     */
+    quality : quality || RoadSegment.ROAD,
+    
+    /**
+     * length :: float
+     */
+    length: pointPointDistance(from, to)
 })
 
 
 // Road qualities
 
-RoadSegment.DIRT     = 0
-RoadSegment.ROAD     = 1
-RoadSegment.HIGHWAY  = 2
+RoadSegment.ROAD            = 0
+RoadSegment.HIGHWAY         = 1
+RoadSegment.SUPER_HIGHWAY   = 2
 
 
-/**
- * length :: Segment -> float
- */
-RoadSegment.distance = (s) =>
-    pointPointDistance(s.from, s.to)
-
-    
 /**
  * distanceToPoint :: Point -> RoadSegment -> int
  * 
@@ -144,17 +154,27 @@ RoadSegment.vertices = (segments) =>
  * RoadSystem :: RoadSystem
  */
 const RoadSystem = () => ({
-    connectionMap   : {}, // { string: [Point] }
-    segments        : [], // [RoadSegment]
-    segmentMap      : {}  // { string: RoadSegment } 
+    /**
+     * connectionMap :: { k: [Point] }
+     */
+    connectionMap: {},
+    
+    /**
+     * segments :: [RoadSegment]
+     */
+    segments: [],
+    
+    /**
+     * segmentMap :: { k: RoadSegment }
+     */
+    segmentMap: {}  
 })
 
     
 /**
  * keyOfPoint :: Point -> string
  */
-RoadSystem.keyOfPoint = (p) =>
-    (p.x + '|' + p.y)
+RoadSystem.keyOfPoint = (p) => (p.x + '|' + p.y)
 
         
 /**
@@ -162,10 +182,6 @@ RoadSystem.keyOfPoint = (p) =>
  */
 RoadSystem.addSegment = (segment, roadSystem) =>
 {
-    if (RoadSegment.isEmpty(segment)) {
-        return roadSystem
-    }
-    
     /*
      Determine if segment we try to add intersects
      with any existing segment.
@@ -176,26 +192,32 @@ RoadSystem.addSegment = (segment, roadSystem) =>
       
      If it doesn't, add the segment.
      */
-    
-    const whereConflicting = (other) => null !== RoadSegment.intersection(segment, other)
-    const conflictingSegment = R.find(whereConflicting, roadSystem.segments)
 
-    if (conflictingSegment)
+    function resolveConflict(conflictingSegment)
     {
         const intersection = roundPoint(RoadSegment.intersection(segment, conflictingSegment))
-        
         return R.pipe(
                 RoadSystem.removeSegment(conflictingSegment),
-                RoadSystem.addSegment(RoadSegment(segment.from, intersection, segment.type)),
-                RoadSystem.addSegment(RoadSegment(segment.to, intersection, segment.type)),
-                RoadSystem.addSegment(RoadSegment(conflictingSegment.from, intersection, segment.type)),
-                RoadSystem.addSegment(RoadSegment(conflictingSegment.to, intersection, segment.type))
-                )(roadSystem)
-               
-    } else {
-        
-        return RoadSystem.addNonIntersectingSegment(segment, roadSystem)
+                RoadSystem.addSegment(RoadSegment(intersection, segment.from, segment.type)),
+                RoadSystem.addSegment(RoadSegment(intersection, segment.to, segment.type)),
+                RoadSystem.addSegment(RoadSegment(intersection, conflictingSegment.from, segment.type)),
+                RoadSystem.addSegment(RoadSegment(intersection, conflictingSegment.to, segment.type))
+                )
     }
+    
+    function performChanges(roadSystem)
+    {
+        const whereConflicting = (other) => null !== RoadSegment.intersection(segment, other)
+        const conflictingSegment = R.find(whereConflicting, roadSystem.segments)
+        
+        return (conflictingSegment)
+            ? resolveConflict(conflictingSegment)(roadSystem)
+            : RoadSystem.addNonIntersectingSegment(segment)(roadSystem)
+    }
+    
+    return (RoadSegment.isEmpty(segment))
+        ? roadSystem
+        : performChanges(roadSystem)
 }
 
 
@@ -204,17 +226,17 @@ RoadSystem.addSegment = (segment, roadSystem) =>
  * 
  * Add road segment to system.
  */
-RoadSystem.addNonIntersectingSegment = (segment, roadSystem) =>
+RoadSystem.addNonIntersectingSegment = (segment) =>
 {
-    const addConnectionToMap      = (a, b) => (tbl) => R.mergeWith(R.concat, tbl, R.objOf(RoadSystem.keyOfPoint(a), [b]))
-    const addConnectionToSystem   = (a, b) => RoadSystem.updateConnectionMap(addConnectionToMap(a, b))
-    const addSegmentToMap         = RoadSystem.updateSegmentMap(R.assoc(RoadSegment.keyOf(segment), segment))
+    const addConnectionToMap    = (a, b) => (tbl) => R.mergeWith(R.concat, tbl, R.objOf(RoadSystem.keyOfPoint(a), [b]))
+    const addConnectionToSystem = (a, b) => RoadSystem.updateConnectionMap(addConnectionToMap(a, b))
+    const addSegmentToMap       = RoadSystem.updateSegmentMap(R.assoc(RoadSegment.keyOf(segment), segment))
 
     return R.compose(
             addConnectionToSystem(segment.from, segment.to),
             addConnectionToSystem(segment.to, segment.from),
             addSegmentToMap
-            )(roadSystem)
+            )
 }
 
 
@@ -309,9 +331,15 @@ RoadSystem.removeSegment = (segment, roadSystem) =>
  */
 RoadSystem.removeVertex = (p, roadSystem) =>
 {
+    /*
+    Find all segments that share a vertex with
+    requested point and remove all those segments.
+    Re-connect all segments that now miss a link. 
+     */
+    
     const k                   = RoadSystem.keyOfPoint(p)
     const segmentsToRemove    = roadSystem.connectionMap[k].map(RoadSystem.findSegment(p, R.__, roadSystem))
-    const lowestRoadQuality   = R.reduce(R.min, RoadSegment.HIGHWAY, R.pluck('quality', segmentsToRemove))
+    const lowestRoadQuality   = R.reduce(R.min, RoadSegment.SUPER_HIGHWAY, R.pluck('quality', segmentsToRemove))
     const segmentFromLink     = (a) => RoadSegment(a[0], a[1], lowestRoadQuality)
     const allMissingLinks     = R.xprod(roadSystem.connectionMap[k], roadSystem.connectionMap[k])
     const allMissingSegments  = allMissingLinks.map(segmentFromLink)
@@ -321,7 +349,7 @@ RoadSystem.removeVertex = (p, roadSystem) =>
     const removeSegments      = (roadSystem) => R.reduce(R.flip(RoadSystem.removeSegment), roadSystem, segmentsToRemove)
     const addSegments         = (roadSystem) => R.reduce(R.flip(RoadSystem.addSegment), roadSystem, segmentsToAdd)
         
-    return (segmentsToAdd.length <= 1) // TODO: review limit (a simplified removeVertex() that does not rejoin broken links?) 
+    return (segmentsToAdd.length <= 3) // TODO: review limit (a simplified removeVertex() that does not rejoin broken links?) 
         ? addSegments(removeSegments(roadSystem))
         : removeSegments(roadSystem)
 }

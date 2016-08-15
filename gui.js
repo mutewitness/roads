@@ -12,9 +12,9 @@
  * ================================================================================
  */
 
-window.onload = () => GUI.run()
-
-// --------------------------------------------------------------------------------
+/* Note: All GUI functions are dirty in the sense that they produce side-effects
+         by using the Paper framework.
+ */
 
 var GUI =
 {
@@ -51,14 +51,6 @@ const GUIState = (s) => ({
     selectedCity: -1
 })
     
-//--------------------------------------------------------------------------------
-//
-//  GUI functions
-//
-// --------------------------------------------------------------------------------
-
-// All GUI functions are dirty in the sense that they produce side-effects
-// by using the Paper framework.
 
 /**
  * apply :: (State -> State) -> GUIState -> GUIState
@@ -101,7 +93,7 @@ GUI.createLayers = (s) =>
  * getConfig :: Config
  */
 GUI.getConfig = () => Config({
-    evaluators  : [TravelTimeEvaluator,
+    evaluators  : [CommuteTimeEvaluator,
                    FinancialEvaluator,
                    NoiseEvaluator],
     numCities   : 30,
@@ -206,7 +198,7 @@ GUI.onMouseDrag = (event, s) =>
  * Project point to screen coordinates.
  */
 GUI.project = (p) =>
-    GUI.projectionMatrix.transform(p)
+    GUI.mapProjectionMatrix.transform(p)
 
     
 /**
@@ -221,7 +213,7 @@ GUI.run = () =>
     
     /* setup affine transformation matrix for projecting map to screen coordinates. */
     
-    GUI.projectionMatrix = new Matrix(10, 0, 0, 10, 0, 0)
+    GUI.mapProjectionMatrix = new Matrix(10, 0, 0, 10, 0, 0)
 
     var s = GUI.newState()
     
@@ -246,7 +238,7 @@ GUI.run = () =>
  * Project point to map coordinates.
  */
 GUI.unproject = (p) =>
-    roundPoint(GUI.projectionMatrix.inverseTransform(p))
+    roundPoint(GUI.mapProjectionMatrix.inverseTransform(p))
     
     
 /**
@@ -299,6 +291,33 @@ GUI.updateMap = (s) =>
     
     R.times(R.compose(createPath, createVerticalLine), mapSize.width)
     R.times(R.compose(createPath, createHorizontalLine), mapSize.height)
+    
+    // --------------------------------------------------------------------------------
+    
+    //    const roadQualityNoise = [1,1,1]
+    //    const occupiedTiles = (segment) =>
+    //        R.fromPairs(raytrace(segment.from, segment.to)
+    //         .map((p) => [RoadSystem.keyOfPoint(p),
+    //                      roadQualityNoise[segment.quality]]
+    //             ))
+    //    
+    //    const createNoiseMap = R.reduce((m, segment) =>
+    //        R.mergeWith(R.max, m, occupiedTiles(segment)), {})
+    //        
+    //    const noiseMap = createNoiseMap(s.appState.roads.segments)
+    //    
+    //    const createTile = (key, value) => {
+    //        var xy = key.split('|'),
+    //            p0 = GUI.project(new Point(parseInt(xy[0]), parseInt(xy[1]))),
+    //            p1 = GUI.project(new Point(parseInt(xy[0])+1, parseInt(xy[1])+1))
+    //        new Path.Rectangle({from: p0, to: p1, fillColor: '#ff0000'})
+    //    }
+    //    
+    //    R.mapObjIndexed(
+    //            (value, key, obj) => createTile(key, value),
+    //            noiseMap)
+        
+    // --------------------------------------------------------------------------------
     
     return s
 }

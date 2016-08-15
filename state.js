@@ -6,35 +6,77 @@
  * on cost function.
  * 
  * Uses Rambda to emphasize a purer functional programming style in JavaScript.
+ * Except for some parts of the GUI code, there are no internal state variables
+ * that change or other side-effects.  
+ * 
  * Uses Paper.js for rendering of vector graphics. 
  *  
  * by Sander van de Merwe (sandervdmerwe@gmail.com)
  * ================================================================================
  */
 
-//--------------------------------------------------------------------------------
-//
-//  Application state
-//
-// --------------------------------------------------------------------------------
 
-var Config = (opts) => R.merge({
-    evaluators  : [],
-    numCities   : 0,
-    mapSize     : new Size(0, 0)
+/**
+ * Config :: {k: *} -> Config
+ */
+var Config = (opts) => R.merge(
+{
+    /**
+     * evaluators :: [State -> float]
+     */
+    evaluators: [],
+    
+    /**
+     * numCities :: int
+     */
+    numCities: 0,
+    
+    /**
+     * mapSize :: Size
+     */
+    mapSize: new Size(0, 0)
 }, opts)
 
 
 /**
- * State :: State
+ * State :: Config -> State
+ * 
+ * Constructs a new state object.
+ * 
+ * The state holds all information of this session, except
+ * for GUI state variables (see GUIState)
  */
-var State = (config) => ({
-    cities      : [],
-    config      : config,
-    currentCost : {},
-    evolution   : 0,
-    roads       : RoadSystem(),
-    trainingSet : []
+var State = (config) => (
+{
+    /**
+     * cities :: [Point]
+     */
+    cities: [],
+    
+    /**
+     * config :: Config
+     */
+    config: config,
+    
+    /**
+     * currentCost :: [float] 
+     */
+    currentCost: [],
+    
+    /**
+     * evolution :: int
+     */
+    evolution: 0,
+    
+    /**
+     * roads :: RoadSystem
+     */
+    roads: RoadSystem(),
+    
+    /**
+     * [(Point,Point)]
+     */
+    trainingSet: []
 })
 
         
@@ -57,8 +99,13 @@ State.evaluate = (s) =>
  */
 State.newCityLocations = (s) =>
 {
-    const randomPoint  = () => new Point(1+randomInt(s.config.mapSize.width-2), 1+randomInt(s.config.mapSize.height-2))
+    const margin = 1
+    
+    const randomPoint = () =>
+        new Point( margin+randomInt(s.config.mapSize.width-2*margin),
+                   margin+randomInt(s.config.mapSize.height-2*margin) )
     const newLocations = R.times(randomPoint, s.config.numCities)
+    
     return R.assoc('cities', newLocations, s)
 }
 
@@ -112,7 +159,7 @@ State.nextIteration = (weightFunction, s) =>
     function selectState(s)
     {
         const newState     = State.evaluate(State.setRoadSystem(Evolution.newRoadSystem(s), s), s)
-        const costFunction = (s) => R.sum(weightFunction(R.values(s.currentCost)))
+        const costFunction = (s) => R.sum(weightFunction(s.currentCost))
         const promote      = (costFunction(newState) < costFunction(s))
         return (promote) ? newState : s
     }

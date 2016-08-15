@@ -74,7 +74,7 @@ Evolution.newRoadSystem = (s) => {
     /* mutation functions */
 
     const nudgeVertex       = (p) => RoadSystem.moveVertex(p, randomPointAround(p, RANGE))
-    const changeRoadQuality = RoadSystem.changeRoadQuality(randomInt(RoadSegment.HIGHWAY+1)) // TODO: exclude current road quality as possibility.
+    const changeRoadQuality = RoadSystem.changeRoadQuality(randomInt(RoadSegment.SUPER_HIGHWAY+1)) // TODO: exclude current road quality as possibility.
     const extendSegment     = (p, quality) => RoadSystem.addSegment(RoadSegment(p, randomPointAround(p, RANGE), quality))
     
     /* pick random mutation and apply it to the road system */
