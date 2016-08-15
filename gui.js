@@ -6,15 +6,19 @@
  * on cost function.
  * 
  * Uses Rambda to emphasize a purer functional programming style in JavaScript.
+ * Except for some parts of the GUI code, there are no internal state variables
+ * that change or other side-effects.  
+ * 
  * Uses Paper.js for rendering of vector graphics. 
  *  
  * by Sander van de Merwe (sandervdmerwe@gmail.com)
  * ================================================================================
  */
 
-/* Note: All GUI functions are dirty in the sense that they produce side-effects
-         by using the Paper framework.
- */
+/*
+Note: All GUI functions are dirty in the sense that they produce side-effects
+      by using the Paper framework.
+*/
 
 var GUI =
 {

@@ -6,22 +6,25 @@
  * on cost function.
  * 
  * Uses Rambda to emphasize a purer functional programming style in JavaScript.
+ * Except for some parts of the GUI code, there are no internal state variables
+ * that change or other side-effects.  
+ * 
  * Uses Paper.js for rendering of vector graphics. 
  *  
  * by Sander van de Merwe (sandervdmerwe@gmail.com)
  * ================================================================================
  */
 
-/**
- * 
- * The road system.
- * 
- * A road system is a collection of segments.
- * 
- * Each segment has a .from and .to property, defining the line geometry
- * of the road.
- * 
- */
+
+/*
+
+The road system.
+ 
+A road system is a collection of segments. Each segment has a .from and .to property,
+defining the line geometry of the road.
+
+*/
+
 
 // --------------------------------------------------------------------------------
 //

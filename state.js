@@ -1,6 +1,6 @@
 /**
  * ================================================================================
- * app.js - road system generation example
+ * ROAD GENERATION AND MULTIPLE CONSTRAINTS
  * 
  * Demonstrates a genetic algorithm for creating road systems based
  * on cost function.
