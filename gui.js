@@ -57,16 +57,6 @@ const GUIState = (s) => ({
     
 
 /**
- * apply :: (State -> State) -> GUIState -> GUIState
- * 
- * Applies given transformation function to the application state and
- * wraps it in a new GUI state.
- */
-GUI.apply = (f, s) =>
-    R.assoc('appState', f(s.appState), s)
-
-    
-/**
  * applyCustomWeights :: [float] -> [float]
  */
 GUI.applyCustomWeights = (xs) =>
@@ -124,24 +114,23 @@ GUI.newState = () => R.pipe(
 /**
  * nextIteration :: GUIState -> GUIState
  */
-GUI.nextIteration = (s) =>
+GUI.nextIteration = () =>
 {
-    const batch = 10 // number of iterations to apply
-    
-    const newState = R.reduce(
+    const stateAfterXSteps = (steps) => R.reduce(
             State.nextIteration(GUI.applyCustomWeights),
-            s.appState,
-            R.range(0, batch) )
+            R.__,
+            R.range(0, steps))
             
-    return GUI.updateStatistics(
-        (newState === s.appState)
-            ? s
-            : GUI.updateRoads(R.assoc('appState', newState, s)))
+    return R.pipe(
+        GUI.transformState(stateAfterXSteps(10)),
+        GUI.updateStatistics,
+        GUI.updateRoads
+        )
 }
 
 
 /**
- * onButtonStartClicked
+ * onButtonStartClicked :: GUIState -> GUIState
  */
 GUI.onButtonStartClicked = (s) =>
     GUI.updateControls(
@@ -150,7 +139,7 @@ GUI.onButtonStartClicked = (s) =>
 
 
 /**
- * onButtonStartClicked
+ * onButtonStartClicked :: GUIState -> GUIState
  */
 GUI.onButtonResetClicked = (s) =>
     GUI.newState()
@@ -161,7 +150,7 @@ GUI.onButtonResetClicked = (s) =>
  */
 GUI.onFrame = (s) =>
     (s.running && -1 == s.selectedCity)
-        ? GUI.nextIteration(s)
+        ? GUI.nextIteration()(s)
         : s
 
 
@@ -182,7 +171,7 @@ GUI.onMouseDown = (event, s) => {
 GUI.onMouseUp = (event, s) =>
     R.when((s) => -1 != s.selectedCity,
             R.pipe(R.assoc('selectedCity', -1),
-                    GUI.apply(State.newTrainingSet),
+                    GUI.transformState(State.newTrainingSet),
                     GUI.updateCities),
             s)
 
@@ -192,7 +181,7 @@ GUI.onMouseUp = (event, s) =>
  */
 GUI.onMouseDrag = (event, s) =>
     R.when((s) => -1 != s.selectedCity,
-           R.pipe( GUI.apply(State.setCity(s.selectedCity, GUI.unproject(event.point))),
+           R.pipe( GUI.transformState(State.setCity(s.selectedCity, GUI.unproject(event.point))),
                    GUI.updateCities ),
            s)
     
@@ -237,6 +226,18 @@ GUI.run = () =>
             (event) => { s = GUI.onButtonResetClicked(s) })
 }
     
+
+
+/**
+ * apply :: (State -> State) -> GUIState -> GUIState
+ * 
+ * Applies given transformation function to the application state and
+ * wraps it in a new GUI state.
+ */
+GUI.transformState = (f, s) =>
+    R.assoc('appState', f(s.appState), s)
+
+
 /**
  * unproject :: Point -> Point
  * Project point to map coordinates.
@@ -252,8 +253,14 @@ GUI.unproject = (p) =>
  */
 GUI.updateCities = (s) =>
 {
-    const style = R.merge(GUI.styles.cities, {layer: s.layers.cities})
-    const createShape = (location) => new Path.RegularPolygon(R.merge(style, {center: GUI.project(location)}))
+    const style = R.merge(GUI.styles.cities,
+                         {layer: s.layers.cities})
+                         
+    const createShape = (location) =>
+        new Path.RegularPolygon(R.merge(
+                style,
+                {center: GUI.project(location)}
+                ))
     
     s.layers.cities.activate()
     s.layers.cities.removeChildren()
@@ -285,10 +292,12 @@ GUI.updateMap = (s) =>
     const projectedSize = GUI.project(new Point(mapSize))
     view.viewSize = new Size(projectedSize)
     
-    const style                   = R.merge(GUI.styles.grid, {layer: s.layers.map})
-    const createVerticalLine      = (i) => [new Point(i, 0), new Point(i, mapSize.height)]
-    const createHorizontalLine    = (i) => [new Point(0, i), new Point(mapSize.width, i)]
-    const createPath              = (lst) => new Path(R.merge(style, {segments: lst.map(GUI.project)}))
+    const style = R.merge(GUI.styles.grid,
+                          {layer: s.layers.map})
+                          
+    const createVerticalLine = (i) => [new Point(i, 0), new Point(i, mapSize.height)]
+    const createHorizontalLine = (i) => [new Point(0, i), new Point(mapSize.width, i)]
+    const createPath = (lst) => new Path(R.merge(style, {segments: lst.map(GUI.project)}))
 
     s.layers.map.activate()
     s.layers.map.removeChildren()
@@ -334,11 +343,18 @@ GUI.updateMap = (s) =>
  */
 GUI.updateRoads = (s) =>
 {
-    const style = (segment) => R.merge(GUI.styles.roads[segment.quality], {layer: s.layers.road})
-    const createPath = (segment) => new Path(R.merge(style(segment), { segments: [segment.from, segment.to].map(GUI.project) }))
+    const style = (segment) => R.merge(
+            GUI.styles.roads[segment.quality],
+            {layer: s.layers.road})
+    
+    const createPath = (segment) => new Path(R.merge(
+            style(segment),
+            { segments: [segment.from, segment.to].map(GUI.project) }
+            ))
     
     s.layers.roads.activate()
     s.layers.roads.removeChildren()
+    
     s.appState.roads.segments.forEach(createPath)
     
     return s
