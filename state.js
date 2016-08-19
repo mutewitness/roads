@@ -104,6 +104,7 @@ State.newCityLocations = (s) =>
     const randomPoint = () =>
         new Point( margin+randomInt(s.config.mapSize.width-2*margin),
                    margin+randomInt(s.config.mapSize.height-2*margin) )
+        
     const newLocations = R.times(randomPoint, s.config.numCities)
     
     return R.assoc('cities', newLocations, s)
@@ -131,14 +132,14 @@ State.newTrainingSet = (s) =>
 {
     /* for every city, pick a few target commute cities. */
     
-    const targetCommuteCities = (origin) => {
+    function getTargetCommuteCities(origin) {
         const numDestinations = 3
         const validDestinations = R.without([origin], s.cities)
         return R.times(() => [origin, randomFromList(validDestinations)], numDestinations)
     }
     
     const newSet = R.reduce(
-            (acc, value) => acc.concat(targetCommuteCities(value)),
+            (acc, value) => acc.concat(getTargetCommuteCities(value)),
             [], s.cities)
     
     return State.evaluate(
@@ -156,7 +157,7 @@ State.newTrainingSet = (s) =>
  */
 State.nextIteration = (weightFunction, s) =>
 {
-    function selectState(s)
+    function selectNewState(s)
     {
         const newState     = State.evaluate(State.setRoadSystem(Evolution.newRoadSystem(s), s), s)
         const costFunction = (s) => R.sum(weightFunction(s.currentCost))
@@ -166,7 +167,7 @@ State.nextIteration = (weightFunction, s) =>
 
     const increaseCounter = R.over(R.lensProp('evolution'), R.inc)
             
-    return increaseCounter(selectState(s))
+    return increaseCounter(selectNewState(s))
 }
 
 

@@ -55,6 +55,7 @@ function lineLineIntersection(a1, a2, b1, b2)
     }
 }
 
+
 //function lineCircleIntersection(a, b, p, r)
 //{
 //    const eDistAtoB = a.getDistance(b)
@@ -79,6 +80,7 @@ function lineLineIntersection(a1, a2, b1, b2)
 //    return null
 //}
 
+
 /**
  * pointPointDistance :: Point -> Point -> float
  */
@@ -86,6 +88,7 @@ function pointPointDistance(a, b)
 {
     return Math.sqrt((a.x-b.x)*(a.x-b.x)+(a.y-b.y)*(a.y-b.y))
 }
+
 
 /**
  * pointLineDistance :: Point -> Point -> Point -> float
@@ -124,9 +127,13 @@ function pointLineDistance(p, a, b)
 /**
  * roundPoint :: Point -> Point
  */
-function roundPoint(p) {
-    return p ? new Point(Math.round(p.x), Math.round(p.y)) : null
+function roundPoint(p)
+{
+    return p
+        ? new Point(Math.round(p.x), Math.round(p.y))
+        : null
 }
+
 
 /**
  * raytrace :: Point -> Point -> [Point]
@@ -160,3 +167,4 @@ function raytrace(a, b)
     
     return tiles
 }
+

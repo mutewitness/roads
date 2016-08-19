@@ -20,15 +20,30 @@ var Evolution = {}
 /**
  * newRoadSystem :: State -> RoadSystem
  */
-Evolution.newRoadSystem = (s) => {
-
+Evolution.newRoadSystem = (s) =>
+{
     // TODO: attention mutation.
     // TODO: variant extendSegment that connects to existing point around selected one?
     // TODO: split and change road quality?
     
-    const RANGE = 3
-    const randomPointAround = (p, r) => p.add(new Point(-r+randomInt(2*r+1), -r+randomInt(2*r+1)))
-        
+    /*
+     Mutation (helper) functions
+     */
+    
+    /**
+     * randomPointRange :: int
+     */
+    const randomPointRange = 3
+    
+    /**
+     * randomPointAround :: Point -> int -> Point
+     */
+    const randomPointAround = (p, r) =>
+        p.add(new Point(-r+randomInt(2*r+1),
+                        -r+randomInt(2*r+1)
+                        ))
+       
+                        
     /**
      * withRandomSegment :: (RoadSegment -> RoadSystem) -> (RoadSystem -> RoadSystem)
      */
@@ -37,6 +52,7 @@ Evolution.newRoadSystem = (s) => {
             ? f(randomFromList(roadSystem.segments))
             : R.identity)
         (roadSystem)
+        
         
     /**
      * withRandomVertex :: (Point -> RoadSystem) -> (RoadSystem -> RoadSystem)
@@ -47,12 +63,14 @@ Evolution.newRoadSystem = (s) => {
             : R.identity)
         (roadSystem)
         
+        
     /**
      * withRandomVertexOrCity :: (Point -> RoadSystem) -> (RoadSystem -> RoadSystem)
      */
     const withRandomVertexOrCity = (f) => (roadSystem) =>
         f(randomFromList(R.concat(s.cities, RoadSegment.vertices(roadSystem.segments))))
         (roadSystem)
+        
         
     /**
      * splitAnd :: (Point -> RoadSegment -> RoadSystem -> RoadSystem) -> RoadSegment -> (RoadSystem -> RoadSystem)
@@ -69,18 +87,34 @@ Evolution.newRoadSystem = (s) => {
             )
     }
     
+    
     /**
      * split :: RoadSegment -> (RoadSystem -> RoadSystem)
      */
     const split = splitAnd(R.always(R.identity))
     
-    /* mutation functions */
-
-    const nudgeVertex       = (p) => RoadSystem.moveVertex(p, randomPointAround(p, RANGE))
-    const changeRoadQuality = RoadSystem.changeRoadQuality(randomInt(RoadSegment.SUPER_HIGHWAY+1)) // TODO: exclude current road quality as possibility.
-    const extendSegment     = (p, quality) => RoadSystem.addSegment(RoadSegment(p, randomPointAround(p, RANGE), quality))
     
-    /* pick random mutation and apply it to the road system */
+    /**
+     * nudgeVertex :: Point -> (RoadSystem -> RoadSystem)
+     */
+    const nudgeVertex = (p) => RoadSystem.moveVertex(p, randomPointAround(p, randomPointRange))
+
+    
+    /**
+     * changeRoadQuality :: RoadSegment -> (RoadSystem -> RoadSystem)
+     */
+    const changeRoadQuality = RoadSystem.changeRoadQuality(randomInt(RoadSegment.SUPER_HIGHWAY+1)) // TODO: exclude current road quality as possibility.
+    
+    
+    /**
+     * extendSegment :: RoadSegment -> (RoadSystem -> RoadSystem)
+     */
+    const extendSegment = (p, quality) => RoadSystem.addSegment(RoadSegment(p, randomPointAround(p, randomPointRange), quality))
+    
+    
+    /*
+     Pick random mutation and apply it to the road system
+     */
             
     const mutators = [
         withRandomVertexOrCity  ( extendSegment ),
@@ -94,5 +128,6 @@ Evolution.newRoadSystem = (s) => {
         ]
     
     const mutator = randomFromList(mutators)
+    
     return mutator(s.roads)
 }

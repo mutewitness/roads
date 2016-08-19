@@ -148,42 +148,39 @@ GUI.onButtonResetClicked = (s) =>
 /**
  * onFrame :: GUIState -> GUIState 
  */
-GUI.onFrame = (s) =>
-    (s.running && -1 == s.selectedCity)
-        ? GUI.nextIteration()(s)
-        : s
+GUI.onFrame = () =>
+    R.when( (s) => (s.running && -1 == s.selectedCity),
+            GUI.nextIteration() )
 
 
 /**
  * onMouseDown :: MouseEvent -> GUIState -> GUIState
  */
-GUI.onMouseDown = (event, s) => {
+GUI.onMouseDown = (event) => (s) => {
     const hit = s.layers.cities.hitTest(event.point)
-    return R.assoc('selectedCity',
-            (hit) ? hit.item.index : -1,
-            s)
+    const selectedCity = (hit) ? hit.item.index : -1 
+    return R.assoc('selectedCity', selectedCity, s)
 }
 
 
 /**
  * onMouseUp :: MouseEvent -> GUIState -> GUIState
  */
-GUI.onMouseUp = (event, s) =>
+GUI.onMouseUp = (event) =>
     R.when((s) => -1 != s.selectedCity,
             R.pipe(R.assoc('selectedCity', -1),
-                    GUI.transformState(State.newTrainingSet),
-                    GUI.updateCities),
-            s)
+                   GUI.transformState(State.newTrainingSet),
+                   GUI.updateCities))
 
       
 /**
  * onMouseDrag :: MouseEvent -> GUIState -> GUIState
  */
-GUI.onMouseDrag = (event, s) =>
+GUI.onMouseDrag = (event) => (s) =>
     R.when((s) => -1 != s.selectedCity,
-           R.pipe( GUI.transformState(State.setCity(s.selectedCity, GUI.unproject(event.point))),
-                   GUI.updateCities ),
-           s)
+           R.pipe(GUI.transformState(State.setCity(s.selectedCity, GUI.unproject(event.point))),
+                  GUI.updateCities
+          ))(s)
     
 
 /**
@@ -212,10 +209,10 @@ GUI.run = () =>
     
     /* setup event handlers */
     
-    view.onFrame        = (event) => { s = GUI.onFrame(s) }
-    view.onMouseDown    = (event) => { s = GUI.onMouseDown(event, s) }
-    view.onMouseUp      = (event) => { s = GUI.onMouseUp(event, s) }
-    view.onMouseDrag    = (event) => { s = GUI.onMouseDrag(event, s) }
+    view.onFrame        = (event) => { s = GUI.onFrame()(s) }
+    view.onMouseDown    = (event) => { s = GUI.onMouseDown(event)(s) }
+    view.onMouseUp      = (event) => { s = GUI.onMouseUp(event)(s) }
+    view.onMouseDrag    = (event) => { s = GUI.onMouseDrag(event)(s) }
     
     document.getElementById('btn-start').addEventListener(
             'click',
