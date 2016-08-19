@@ -61,10 +61,13 @@ const GUIState = (s) => ({
  */
 GUI.applyCustomWeights = (xs) =>
 {
-    const getWeight = (id) => parseInt(document.getElementById(id).value)
-    const w = ['w0', 'w1', 'w2'].map(getWeight)
-    const sum = R.sum(w)
-    return R.range(0, xs.length).map((i) => (w[i]/sum) * xs[i]) // TODO: get rid of range and map.
+    const sliderIds = ['w0', 'w1', 'w2']
+    const sliderElements = sliderIds.map((id) => document.getElementById(id)) // cannot invoke directly?
+    const getWeight = R.compose(parseFloat, R.prop('value'))
+    const w = normalizeVector(sliderElements.map(getWeight))
+    /* update the visual slider values to reflect the normalized weights. */
+    sliderElements.forEach((el, i) => el.value = w[i])
+    return multVectors(w, xs)
 }
 
 

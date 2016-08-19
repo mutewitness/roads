@@ -31,25 +31,63 @@ function curryAll(clazz)
 
 
 /**
+ * multVectors :: [float] -> [float] -> [float]
+ */
+function multVectors(a, b) {
+    var result = [];
+    result.length = a.length;
+    for (var i=0, n=a.length; i<n; i++)
+        result[i] = a[i] * b[i];
+    return result;
+}
+
+/**
  * randomBool :: bool
  */
-const randomBool = () =>
-    (1 == randomInt(2)) 
+function randomBool()
+{
+    return (1 == randomInt(2))
+}
 
 
 /**
  * randomFromList :: [a] -> a
  */
-const randomFromList = (lst) =>
-    (lst.length > 0)
+function randomFromList(lst)
+{
+    return (lst.length > 0)
         ? lst[randomInt(lst.length)]
         : undefined
+}
 
 
 /**
  * randomInt :: int -> int
  * Returns random number between 0 (inclusive) and ub (exclusive)
  */
-const randomInt = (ub) =>
-    Math.floor(Math.random() * ub)
+function randomInt(ub)
+{
+    return Math.floor(Math.random() * ub)
+}
+
+
+///**
+// * softmax :: [float] -> [float]
+// * 
+// * Calculates the normalized exponential values of given array.
+// */
+//function softmax(xs)
+//{
+//    const exps = xs.map(Math.exp)
+//    return exps.map(R.multiply(1.0/exps.reduce(R.add)))
+//}
+//
+
+/**
+ * normalizeVector :: [float] -> [float]
+ */
+function normalizeVector(xs)
+{
+    return xs.map(R.multiply(1.0/xs.reduce(R.add)))
+}
 
