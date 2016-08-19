@@ -67,7 +67,7 @@ GUI.applyCustomWeights = (xs) =>
     const w = normalizeVector(sliderElements.map(getWeight))
     /* update the visual slider values to reflect the normalized weights. */
     sliderElements.forEach((el, i) => el.value = w[i])
-    return multVectors(w, xs)
+    return multiplyVectors(w, xs)
 }
 
 

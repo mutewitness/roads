@@ -31,9 +31,9 @@ function curryAll(clazz)
 
 
 /**
- * multVectors :: [float] -> [float] -> [float]
+ * multiplyVectors :: [float] -> [float] -> [float]
  */
-function multVectors(a, b) {
+function multiplyVectors(a, b) {
     var result = [];
     result.length = a.length;
     for (var i=0, n=a.length; i<n; i++)
