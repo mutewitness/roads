@@ -29,11 +29,19 @@ function CommuteTimeEvaluator(s)
      */ 
     function commuteCost(line) 
     {
+        /*
+        Query all segments we would travel on if going from
+        point line[0] to line[1], and multiply their lengths
+        by the travel time factor as defined in travelTime
+        (depending on the quality of the road.)
+        
+        The first and last parts of the route are possibly off-road.
+        In that  case the factor noRoadTravelTime will be used instead.  
+         */
         const path       = RoadSystem.path(line[0], line[1], s.roads)
         const segments   = R.zip(path, R.tail(path)).map((pair) => RoadSystem.findSegment(pair[0], pair[1], s.roads))
         const onTheRoad  = R.reduce((acc, segment) => acc + travelTime[segment.quality] * segment.length, 0, segments)
-        const offTheRoad = noRoadTravelTime * (pointPointDistance(line[0], R.head(path)) +
-                                               pointPointDistance(line[1], R.last(path))) 
+        const offTheRoad = noRoadTravelTime * (pointPointDistance(line[0], R.head(path)) + pointPointDistance(line[1], R.last(path))) 
         return onTheRoad + offTheRoad
     }
   
