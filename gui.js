@@ -120,7 +120,7 @@ GUI.newState = () => R.pipe(
 GUI.nextIteration = () =>
 {
     const stateAfterXSteps = (steps) => R.reduce(
-            State.nextIteration(GUI.applyCustomWeights),
+            Evolution.nextIteration(GUI.applyCustomWeights),
             R.__,
             R.range(0, steps))
             

@@ -79,18 +79,6 @@ var State = (config) => (
     trainingSet: []
 })
 
-        
-/**
- * evaluate :: State -> State
- * 
- * Re-evaluates what the cost is of the given state
- * (according to the installed evaluators)
- */
-State.evaluate = (s) =>
-    R.assoc('currentCost',
-            s.config.evaluators.map((f) => f(s)),
-            s)
-
 
 /**
  * newCityLocations :: State -> State
@@ -107,7 +95,7 @@ State.newCityLocations = (s) =>
         
     const newLocations = R.times(randomPoint, s.config.numCities)
     
-    return R.assoc('cities', newLocations, s)
+    return State.setCities(newLocations, s)
 }
 
 
@@ -142,32 +130,7 @@ State.newTrainingSet = (s) =>
             (acc, value) => acc.concat(getTargetCommuteCities(value)),
             [], s.cities)
     
-    return State.evaluate(
-        R.assoc('trainingSet', newSet, s))
-}
-
-
-/**
- * nextIteration :: ([float] -> [float]) -> State -> State
- * 
- * Returns the next iteration in evolution of the given state.
- * 
- * A custom weight function is applied to the final cost before
- * promoting or discarding the new road system fabricated through evolution.
- */
-State.nextIteration = (weightFunction, s) =>
-{
-    function selectNewState(s)
-    {
-        const newState     = State.evaluate(State.setRoadSystem(Evolution.newRoadSystem(s), s), s)
-        const costFunction = (s) => R.sum(weightFunction(s.currentCost))
-        const promote      = (costFunction(newState) < costFunction(s))
-        return (promote) ? newState : s
-    }
-
-    const increaseCounter = R.over(R.lensProp('evolution'), R.inc)
-            
-    return increaseCounter(selectNewState(s))
+    return State.setTrainingSet(newSet, s)
 }
 
 
@@ -175,14 +138,29 @@ State.nextIteration = (weightFunction, s) =>
  * setCity :: int -> Point -> State -> State
  */
 State.setCity = (id, location, s) =>
-    R.assoc('cities', R.update(id, location, s.cities), s)
+    State.setCities(R.update(id, location, s.cities))(s)
 
+    
+/**
+ * setCity :: [Point] -> State -> State
+ */
+State.setCities = (cities, s) =>
+    Evolution.evaluate(R.assoc('cities', cities, s))
 
+    
 /**
  * setRoadSystem :: RoadSystem -> State -> State
  */
 State.setRoadSystem = (newRoadSystem, s) =>
-    R.assoc('roads', newRoadSystem, s)
+    Evolution.evaluate(R.assoc('roads', newRoadSystem, s))
+    
+    
+/**
+ * setTrainingSet :: [(Point,Point)] -> State -> State
+ */
+State.setTrainingSet = (trainingSet, s) =>
+    Evolution.evaluate(R.assoc('trainingSet', trainingSet, s))
+    
     
     
 curryAll(State)
