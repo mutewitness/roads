@@ -24,7 +24,6 @@ Evolution.newRoadSystem = (s) =>
 {
     // TODO: attention mutation.
     // TODO: variant extendSegment that connects to existing point around selected one?
-    // TODO: split and change road quality?
     
     /*
      Mutation (helper) functions
@@ -34,6 +33,11 @@ Evolution.newRoadSystem = (s) =>
      * randomPointRange :: int
      */
     const randomPointRange = 3
+
+    /**
+     * randomQuality :: int
+     */
+    const randomQuality = () => randomInt(RoadSegment.SUPER_HIGHWAY+1)
     
     /**
      * randomPointAround :: Point -> int -> Point
@@ -73,18 +77,30 @@ Evolution.newRoadSystem = (s) =>
         
         
     /**
-     * splitAnd :: (Point -> RoadSegment -> RoadSystem -> RoadSystem) -> RoadSegment -> (RoadSystem -> RoadSystem)
+     * splitAnd :: ([Point] -> [RoadSegment] -> (RoadSystem -> RoadSystem)) -> RoadSegment -> (RoadSystem -> RoadSystem)
+     * 
+     * Returns a function that, when given a road segment, creates a
+     * road transformation function that splits the segment at a random point
+     * and invokes function f.
+     * 
+     * The function will be invoked with:
+     *      - a list of points: the split point and the two edges of the original segment
+     *      - a list of segments: the two new segments after the split
+     * and should return a road system transformation function (RoadSystem -> RoadSystem) 
      */
     const splitAnd = (f) => (oldSegment) =>
     {
         const pointOnLine = (a, b, x) => roundPoint(a.add(b.subtract(a).multiply(x)))
-        const splitPoint  = pointOnLine(oldSegment.from, oldSegment.to, Math.random())
-        return R.pipe(
-            RoadSystem.removeSegment(oldSegment),
-            RoadSystem.addSegment(RoadSegment(oldSegment.from, splitPoint, oldSegment.quality)),
-            RoadSystem.addSegment(RoadSegment(oldSegment.to, splitPoint, oldSegment.quality)),
-            f(splitPoint, oldSegment)
-            )
+        const splitPoint = pointOnLine(oldSegment.from, oldSegment.to, Math.random())
+        const segmentA = RoadSegment(oldSegment.from, splitPoint, oldSegment.quality)
+        const segmentB = RoadSegment(oldSegment.to, splitPoint, oldSegment.quality)
+        
+        return R.pipe( RoadSystem.removeSegment(oldSegment),
+                       RoadSystem.addSegment(segmentA),
+                       RoadSystem.addSegment(segmentB),
+                       f([splitPoint, oldSegment.from, oldSegment.to],
+                         [segmentA, segmentB])
+                       )
     }
     
     
@@ -103,7 +119,7 @@ Evolution.newRoadSystem = (s) =>
     /**
      * changeRoadQuality :: RoadSegment -> (RoadSystem -> RoadSystem)
      */
-    const changeRoadQuality = RoadSystem.changeRoadQuality(randomInt(RoadSegment.SUPER_HIGHWAY+1)) // TODO: exclude current road quality as possibility.
+    const changeRoadQuality = (s) => RoadSystem.changeRoadQuality(randomQuality(), s) // TODO: exclude current road quality as possibility.
     
     
     /**
@@ -117,14 +133,15 @@ Evolution.newRoadSystem = (s) =>
      */
             
     const mutators = [
-        withRandomVertexOrCity  ( extendSegment ),
-        withRandomVertex        ( nudgeVertex ),
-        withRandomVertex        ( RoadSystem.removeVertex ),
-        withRandomSegment       ( RoadSystem.removeSegment ),
-        withRandomSegment       ( split ),
-        withRandomSegment       ( splitAnd((splitPoint, oldSegment) => extendSegment(splitPoint, oldSegment.quality)) ),
-        withRandomSegment       ( splitAnd(nudgeVertex) ),
-        withRandomSegment       ( changeRoadQuality )
+        withRandomVertexOrCity(extendSegment),
+        withRandomVertex(nudgeVertex),
+        withRandomVertex(RoadSystem.removeVertex),
+        withRandomSegment(RoadSystem.removeSegment),
+        withRandomSegment(split),
+        withRandomSegment(splitAnd((ps, ss) => extendSegment(ps[0], ss[0].quality))),
+        withRandomSegment(splitAnd((ps, ss) => changeRoadQuality(randomFromList(ss)))),
+        withRandomSegment(splitAnd((ps, ss) => nudgeVertex(randomFromList(ps)))),
+        withRandomSegment(changeRoadQuality)
         ]
     
     const mutator = randomFromList(mutators)
