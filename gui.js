@@ -52,7 +52,8 @@ const GUIState = (s) => ({
     appState    : s,
     layers      : {},
     running     : false,
-    selectedCity: -1
+    selectedCity: -1,
+    userInteraction: false
 })
     
 
@@ -61,12 +62,8 @@ const GUIState = (s) => ({
  */
 GUI.applyCustomWeights = (xs) =>
 {
-    const sliderIds = ['w0', 'w1', 'w2']
-    const sliderElements = sliderIds.map((id) => document.getElementById(id)) // cannot invoke directly?
     const getWeight = R.compose(parseFloat, R.prop('value'))
-    const w = normalizeVector(sliderElements.map(getWeight))
-    /* update the visual slider values to reflect the normalized weights. */
-    sliderElements.forEach((el, i) => el.value = w[i])
+    const w = normalizeVector(GUI.sliders().map(getWeight))
     return multiplyVectors(w, xs)
 }
 
@@ -87,32 +84,32 @@ GUI.createLayers = (s) =>
 
     
 /**
- * getConfig :: Config
+ * newProblemDescription :: int -> ProblemDescription
  */
-GUI.getConfig = () => Config({
-    evaluators  : [CommuteTimeEvaluator,
-                   FinancialEvaluator,
-                   NoiseEvaluator],
-    numCities   : 30,
-    mapSize     : new Size(90, 60)
-})
+GUI.newProblemDescription = (n) =>
+    ProblemDescription.randomizeCities(n, ProblemDescription({
+        evaluators  : [CommuteTimeEvaluator,
+                       FinancialEvaluator,
+                       NoiseEvaluator],
+        mapSize     : new Size(90, 60)
+    }))
     
 
 /**
- * newState :: GUIState 
+ * newState :: () -> GUIState 
  */
-GUI.newState = () => R.pipe(
-        GUI.getConfig,
-        State.newState,
-        GUIState,
-        GUI.createLayers,
-        GUI.updateMap,
-        GUI.updateCities,
-        GUI.updateRoads,
-        GUI.updateStatistics,
-        GUI.updateControls
-        )()
-
+GUI.newState = () => 
+    R.pipe( GUI.newProblemDescription,
+            State.newState,
+            GUIState,
+            GUI.createLayers,
+            GUI.updateMap,
+            GUI.updateCities,
+            GUI.updateRoads,
+            GUI.updateStatistics,
+            GUI.updateControls
+           ) (30)
+        
 
 /**
  * nextIteration :: GUIState -> GUIState
@@ -147,12 +144,34 @@ GUI.onButtonStartClicked = (s) =>
 GUI.onButtonResetClicked = (s) =>
     GUI.newState()
     
+    
+/**
+ * onDocumentMouseDown :: GUIState -> GUIState
+ */
+GUI.onDocumentMouseDown = (s) =>
+    R.assoc('userInteraction', true, s)
+
+
+/**
+ * onDocumentMouseUp :: GUIState -> GUIState
+ */
+GUI.onDocumentMouseMove = (s) =>
+    R.when(R.prop('userInteraction'),
+           GUI.updateControls)(s)
+    
+    
+/**
+ * onDocumentMouseUp :: GUIState -> GUIState
+ */
+GUI.onDocumentMouseUp = (s) =>
+    R.assoc('userInteraction', false, s)
+    
 
 /**
  * onFrame :: GUIState -> GUIState 
  */
 GUI.onFrame = () =>
-    R.when( (s) => (s.running && -1 == s.selectedCity),
+    R.when( (s) => (s.running && !s.userInteraction),
             GUI.nextIteration() )
 
 
@@ -181,7 +200,7 @@ GUI.onMouseUp = (event) =>
  */
 GUI.onMouseDrag = (event) => (s) =>
     R.when((s) => -1 != s.selectedCity,
-           R.pipe(GUI.transformState(State.setCity(s.selectedCity, GUI.unproject(event.point))),
+           R.pipe(GUI.transformState(State.transformProblem(ProblemDescription.setCity(s.selectedCity, GUI.unproject(event.point)))),
                   GUI.updateCities
           ))(s)
     
@@ -195,7 +214,7 @@ GUI.project = (p) =>
 
     
 /**
- * run ::
+ * run :: () -> ()
  */
 GUI.run = () =>
 {
@@ -217,19 +236,25 @@ GUI.run = () =>
     view.onMouseUp      = (event) => { s = GUI.onMouseUp(event)(s) }
     view.onMouseDrag    = (event) => { s = GUI.onMouseDrag(event)(s) }
     
-    document.getElementById('btn-start').addEventListener(
-            'click',
-            (event) => { s = GUI.onButtonStartClicked(s) })
-            
-    document.getElementById('btn-reset').addEventListener(
-            'click',
-            (event) => { s = GUI.onButtonResetClicked(s) })
+    document.addEventListener('mouseup', (event) => { s = GUI.onDocumentMouseUp(s) })
+    document.addEventListener('mousedown', (event) => { s = GUI.onDocumentMouseDown(s) })
+    document.addEventListener('mousemove', (event) => { s = GUI.onDocumentMouseMove(s) })
+    document.getElementById('btn-start').addEventListener('click', (event) => { s = GUI.onButtonStartClicked(s) })
+    document.getElementById('btn-reset').addEventListener('click', (event) => { s = GUI.onButtonResetClicked(s) })
 }
-    
 
 
 /**
- * apply :: (State -> State) -> GUIState -> GUIState
+ * sliders :: () -> [DOMElement]
+ */
+GUI.sliders = () => {
+    const sliderIds = ['w0', 'w1', 'w2']
+    return sliderIds.map((id) => document.getElementById(id)) // cannot invoke directly?
+}
+
+
+/**
+ * transformState :: (State -> State) -> (GUIState -> GUIState)
  * 
  * Applies given transformation function to the application state and
  * wraps it in a new GUI state.
@@ -264,7 +289,7 @@ GUI.updateCities = (s) =>
     
     s.layers.cities.activate()
     s.layers.cities.removeChildren()
-    s.appState.cities.forEach(createShape)
+    s.appState.problem.cities.forEach(createShape)
     
     return s
 }
@@ -276,6 +301,11 @@ GUI.updateCities = (s) =>
 GUI.updateControls = (s) =>
 {
     document.getElementById('btn-start').innerText = s.running ? 'Pause' : 'Start';
+    
+    /* update the visual slider values to reflect the normalized weights. */
+    const w = GUI.applyCustomWeights([1,1,1])
+    GUI.sliders().forEach((el, i) => el.value = w[i])
+    
     return s
 }
 
@@ -287,7 +317,7 @@ GUI.updateControls = (s) =>
  */
 GUI.updateMap = (s) =>
 {
-    const mapSize = s.appState.config.mapSize
+    const mapSize = s.appState.problem.mapSize
     
     const projectedSize = GUI.project(new Point(mapSize))
     view.viewSize = new Size(projectedSize)

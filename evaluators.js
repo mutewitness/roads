@@ -27,7 +27,7 @@ function CommuteTimeEvaluator(s)
     /*
      * commuteCost :: (Point,Point) -> float
      */ 
-    function commuteCost(line) 
+    const commuteCost = (line) => 
     {
         /*
         Query all segments we would travel on if going from
@@ -62,7 +62,7 @@ function FinancialEvaluator(s)
     const segmentCost       = (segment) => roadLength(segment) * constructionCost[segment.quality]
       
     // The maximum possible cost cost for given segment (constructing highways everywhere)
-    const maximumCost = (line) => segmentCost(RoadSegment(line[0], line[1], RoadSegment.SUPER_HIGHWAY))
+    const maximumCost = (line) => segmentCost(RoadSegment(line[0], line[1], RoadQuality.SUPER_HIGHWAY))
       
     return R.sum(s.roads.segments.map(segmentCost)) / R.sum(s.trainingSet.map(maximumCost)) 
 }
@@ -79,7 +79,7 @@ function NoiseEvaluator(s)
     /**
      * segmentNoise :: Point -> Segment -> float
      */
-    function segmentNoise(city, segment)
+    const segmentNoise = (city, segment) =>
     {
         const qf = roadQualityNoise[segment.quality]
         const df = () => Math.exp(-(RoadSegment.distanceToPoint(city, segment)*segment.length)/halfDistance)
@@ -105,7 +105,7 @@ function NoiseEvaluator(s)
     const cityNoise = (city) => R.reduce((acc, segment) => acc + segmentNoise(city, segment), 0, s.roads.segments)
     
     // The maximum possible cost for given city. (having an highway at zero distance)
-    const maximumCost = s.cities.length * roadQualityNoise[RoadSegment.SUPER_HIGHWAY]
+    const maximumCost = s.problem.cities.length * roadQualityNoise[RoadQuality.SUPER_HIGHWAY]
   
-    return R.sum(s.cities.map(cityNoise)) / maximumCost
+    return R.sum(s.problem.cities.map(cityNoise)) / maximumCost
 }

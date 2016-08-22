@@ -17,46 +17,19 @@
 
 
 /**
- * Config :: {k: *} -> Config
- */
-var Config = (opts) => R.merge(
-{
-    /**
-     * evaluators :: [State -> float]
-     */
-    evaluators: [],
-    
-    /**
-     * numCities :: int
-     */
-    numCities: 0,
-    
-    /**
-     * mapSize :: Size
-     */
-    mapSize: new Size(0, 0)
-}, opts)
-
-
-/**
- * State :: Config -> State
+ * State :: ProblemDescription -> State
  * 
  * Constructs a new state object.
  * 
  * The state holds all information of this session, except
  * for GUI state variables (see GUIState)
  */
-var State = (config) => (
+var State = (problem) => (
 {
     /**
-     * cities :: [Point]
+     * problem :: ProblemDescription
      */
-    cities: [],
-    
-    /**
-     * config :: Config
-     */
-    config: config,
+    problem: problem,
     
     /**
      * currentCost :: [float] 
@@ -81,33 +54,12 @@ var State = (config) => (
 
 
 /**
- * newCityLocations :: State -> State
- * 
- * Returns a new state with random cities.
- */
-State.newCityLocations = (s) =>
-{
-    const margin = 1
-    
-    const randomPoint = () =>
-        new Point( margin+randomInt(s.config.mapSize.width-2*margin),
-                   margin+randomInt(s.config.mapSize.height-2*margin) )
-        
-    const newLocations = R.times(randomPoint, s.config.numCities)
-    
-    return State.setCities(newLocations, s)
-}
-
-
-/**
- * newState :: Config -> State
+ * newState :: ProblemDescription -> State
  * 
  * Returns a new state with random cities and training set.
  */
-State.newState = (cfg) => R.pipe(
-    State.newCityLocations,
-    State.newTrainingSet
-   ) (State(cfg))
+State.newState = (problem) =>
+    State.newTrainingSet(State(problem))
 
 
 /**
@@ -120,34 +72,19 @@ State.newTrainingSet = (s) =>
 {
     /* for every city, pick a few target commute cities. */
     
-    function getTargetCommuteCities(origin) {
+    const destinations = (origin) => {
         const numDestinations = 3
-        const validDestinations = R.without([origin], s.cities)
+        const validDestinations = R.without([origin], s.problem.cities)
         return R.times(() => [origin, randomFromList(validDestinations)], numDestinations)
     }
     
-    const newSet = R.reduce(
-            (acc, value) => acc.concat(getTargetCommuteCities(value)),
-            [], s.cities)
+    const newSet = R.reduce( (acc, value) => acc.concat(destinations(value)),
+                             [], s.problem.cities)
     
     return State.setTrainingSet(newSet, s)
 }
 
 
-/**
- * setCity :: int -> Point -> State -> State
- */
-State.setCity = (id, location, s) =>
-    State.setCities(R.update(id, location, s.cities))(s)
-
-    
-/**
- * setCity :: [Point] -> State -> State
- */
-State.setCities = (cities, s) =>
-    Evolution.evaluate(R.assoc('cities', cities, s))
-
-    
 /**
  * setRoadSystem :: RoadSystem -> State -> State
  */
@@ -162,5 +99,14 @@ State.setTrainingSet = (trainingSet, s) =>
     Evolution.evaluate(R.assoc('trainingSet', trainingSet, s))
     
     
+/**
+ * transformProblem :: (ProblemDescription -> ProblemDescription) -> (State -> State)
+ * 
+ * Applies given transformation function to the problem and
+ * wraps it in a new state.
+ */
+State.transformProblem = (f, s) =>
+    R.assoc('problem', f(s.problem), s)
     
+
 curryAll(State)

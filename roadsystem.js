@@ -35,6 +35,10 @@ defining the line geometry of the road.
 
 /**
  * RoadSegment :: Point -> Point -> int -> RoadSegment
+ * 
+ * Constructs a new road segment.
+ * A segment is defined by its two vertices (.from and .to)
+ * and its quality (see RoadQuality.XX constants)
  */
 const RoadSegment = (from, to, quality) => (
 {
@@ -51,7 +55,7 @@ const RoadSegment = (from, to, quality) => (
     /**
      * quality :: int
      */
-    quality : quality || RoadSegment.ROAD,
+    quality : quality || RoadQuality.ROAD,
     
     /**
      * length :: float
@@ -62,9 +66,10 @@ const RoadSegment = (from, to, quality) => (
 
 // Road qualities
 
-RoadSegment.ROAD            = 0
-RoadSegment.HIGHWAY         = 1
-RoadSegment.SUPER_HIGHWAY   = 2
+var RoadQuality = {}
+RoadQuality.ROAD            = 0
+RoadQuality.HIGHWAY         = 1
+RoadQuality.SUPER_HIGHWAY   = 2
 
 
 /**
@@ -95,7 +100,7 @@ RoadSegment.equals = (a, b) =>
  * isEmpty :: RoadSegment -> bool
  * 
  * Checks if given segment is empty.
- * A segment is considered empty if its from and to properties are equal.
+ * A segment is considered empty if its .from and .to properties are equal.
  */
 RoadSegment.isEmpty = (s) =>
     s.from.equals(s.to)
@@ -154,7 +159,7 @@ RoadSegment.vertices = (segments) =>
 
 
 /**
- * RoadSystem :: RoadSystem
+ * RoadSystem :: () -> RoadSystem
  */
 const RoadSystem = () => ({
     /**
@@ -196,25 +201,23 @@ RoadSystem.addSegment = (segment, roadSystem) =>
      If it doesn't, add the segment.
      */
 
-    function resolveConflict(conflictingSegment)
+    const deconflicted = (conflictingSegment) =>
     {
         const intersection = roundPoint(RoadSegment.intersection(segment, conflictingSegment))
-        return R.pipe(
-                RoadSystem.removeSegment(conflictingSegment),
-                RoadSystem.addSegment(RoadSegment(intersection, segment.from, segment.type)),
-                RoadSystem.addSegment(RoadSegment(intersection, segment.to, segment.type)),
-                RoadSystem.addSegment(RoadSegment(intersection, conflictingSegment.from, segment.type)),
-                RoadSystem.addSegment(RoadSegment(intersection, conflictingSegment.to, segment.type))
-                )
+        return R.pipe( RoadSystem.removeSegment(conflictingSegment),
+                       RoadSystem.addSegment(RoadSegment(intersection, segment.from, segment.type)),
+                       RoadSystem.addSegment(RoadSegment(intersection, segment.to, segment.type)),
+                       RoadSystem.addSegment(RoadSegment(intersection, conflictingSegment.from, segment.type)),
+                       RoadSystem.addSegment(RoadSegment(intersection, conflictingSegment.to, segment.type)) )
     }
     
-    function performChanges(roadSystem)
+    const performChanges = (roadSystem) =>
     {
         const whereConflicting = (other) => null !== RoadSegment.intersection(segment, other)
         const conflictingSegment = R.find(whereConflicting, roadSystem.segments)
         
         return (conflictingSegment)
-            ? resolveConflict(conflictingSegment)(roadSystem)
+            ? deconflicted(conflictingSegment)(roadSystem)
             : RoadSystem.addNonIntersectingSegment(segment)(roadSystem)
     }
     
@@ -342,7 +345,7 @@ RoadSystem.removeVertex = (p, roadSystem) =>
     
     const k                   = RoadSystem.keyOfPoint(p)
     const segmentsToRemove    = roadSystem.connectionMap[k].map(RoadSystem.findSegment(p, R.__, roadSystem))
-    const lowestRoadQuality   = R.reduce(R.min, RoadSegment.SUPER_HIGHWAY, R.pluck('quality', segmentsToRemove))
+    const lowestRoadQuality   = R.reduce(R.min, RoadQuality.SUPER_HIGHWAY, R.pluck('quality', segmentsToRemove))
     const segmentFromLink     = (a) => RoadSegment(a[0], a[1], lowestRoadQuality)
     const allMissingLinks     = R.xprod(roadSystem.connectionMap[k], roadSystem.connectionMap[k])
     const allMissingSegments  = allMissingLinks.map(segmentFromLink)
@@ -379,9 +382,5 @@ RoadSystem.updateSegmentMap = (f, roadSystem) =>
 }
         
         
-// --------------------------------------------------------------------------------
-    
 curryAll(RoadSystem)
 curryAll(RoadSegment)
-
-// --------------------------------------------------------------------------------

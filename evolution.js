@@ -26,7 +26,7 @@ var Evolution = {}
  */
 Evolution.evaluate = (s) =>
     R.assoc('currentCost',
-            s.config.evaluators.map((f) => f(s)),
+            s.problem.evaluators.map((f) => f(s)),
             s)
 
 
@@ -101,7 +101,7 @@ Evolution.mutate = (s) =>
      */
             
     const mutators = [
-        Evolution.withRandomVertexOrCity(s.cities, extendSegment),
+        Evolution.withRandomVertexOrCity(s.problem.cities, extendSegment),
         Evolution.withRandomVertex(nudgeVertex),
         Evolution.withRandomVertex(RoadSystem.removeVertex),
         Evolution.withRandomSegment(RoadSystem.removeSegment),
@@ -131,8 +131,7 @@ Evolution.nextIteration = (weightFunction, s) =>
     /**
      * selectNewState :: State -> State
      */
-    function selectNewState(s)
-    {
+    const selectNewState = (s) => {
         const newState = Evolution.mutate(s)
         const costFunction = (s) => R.sum(weightFunction(s.currentCost))
         const promote = (costFunction(newState) < costFunction(s))
@@ -163,7 +162,7 @@ Evolution.randomPointAround = (p, r) =>
 /**
  * randomQuality :: int
  */
-Evolution.randomQuality = () => randomInt(RoadSegment.SUPER_HIGHWAY+1)
+Evolution.randomQuality = () => randomInt(RoadQuality.SUPER_HIGHWAY+1)
 
 
 /**
