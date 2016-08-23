@@ -84,10 +84,10 @@ GUI.createLayers = (s) =>
 
     
 /**
- * newProblemDescription :: int -> ProblemDescription
+ * newProblemDescription :: () -> ProblemDescription
  */
-GUI.newProblemDescription = (n) =>
-    ProblemDescription.randomizeCities(n, ProblemDescription({
+GUI.newProblemDescription = () =>
+    ProblemDescription.randomizeCities(30, ProblemDescription({
         evaluators  : [CommuteTimeEvaluator,
                        FinancialEvaluator,
                        NoiseEvaluator],
@@ -108,7 +108,7 @@ GUI.newState = () =>
             GUI.updateRoads,
             GUI.updateStatistics,
             GUI.updateControls
-           ) (30)
+           ) ()
         
 
 /**
