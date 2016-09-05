@@ -51,9 +51,9 @@ function randomBool()
 
 
 /**
- * randomFromList :: [a] -> a
+ * pickRandom :: [a] -> a
  */
-function randomFromList(lst)
+function pickRandom(lst)
 {
     return (lst.length > 0)
         ? lst[randomInt(lst.length)]
