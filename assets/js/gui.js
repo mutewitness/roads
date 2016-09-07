@@ -236,24 +236,24 @@ GUI.run = () =>
 
     GUI.mapProjectionMatrix = new Matrix(10, 0, 0, 10, 0, 0)
 
-    var s = GUI.newState()
+    const MutableState = {
+        s: GUI.newState(),
+        transform: (f) => (event) => { MutableState.s = f(event)(MutableState.s) }
+    }
 
     /* setup event handlers */
 
-    const transformStateWith = (f) => (event) => { s = f(event)(s) }
-    const onClick = (id) => (f) => elementById(id).addEventListener('click', f)
+    view.onFrame          = MutableState.transform(GUI.onFrame)
+    view.onMouseDown      = MutableState.transform(GUI.onMouseDown)
+    view.onMouseUp        = MutableState.transform(GUI.onMouseUp)
+    view.onMouseDrag      = MutableState.transform(GUI.onMouseDrag)
 
-    view.onFrame      = transformStateWith(GUI.onFrame)
-    view.onMouseDown  = transformStateWith(GUI.onMouseDown)
-    view.onMouseUp    = transformStateWith(GUI.onMouseUp)
-    view.onMouseDrag  = transformStateWith(GUI.onMouseDrag)
+    document.onmouseup    = MutableState.transform(GUI.onDocumentMouseUp)
+    document.onmousedown  = MutableState.transform(GUI.onDocumentMouseDown)
+    document.onmousemove  = MutableState.transform(GUI.onDocumentMouseMove)
 
-    document.addEventListener('mouseup', transformStateWith(GUI.onDocumentMouseUp))
-    document.addEventListener('mousedown', transformStateWith(GUI.onDocumentMouseDown))
-    document.addEventListener('mousemove', transformStateWith(GUI.onDocumentMouseMove))
-
-    onClick('btn-start')(transformStateWith(GUI.onButtonStartClicked))
-    onClick('btn-reset')(transformStateWith(GUI.onButtonResetClicked))
+    elementById('btn-start').onclick = MutableState.transform(GUI.onButtonStartClicked)
+    elementById('btn-reset').onclick = MutableState.transform(GUI.onButtonResetClicked)
 }
 
 
