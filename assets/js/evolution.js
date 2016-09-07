@@ -35,75 +35,27 @@ Evolution.mutate = (s) =>
      Mutation helper functions.
      */
 
-    /**
-     * splitAnd :: ([Point] -> [RoadSegment] -> (RoadSystem -> RoadSystem)) -> RoadSegment -> (RoadSystem -> RoadSystem)
-     *
-     * Returns a function that, when given a road segment, creates a
-     * road transformation function that splits the segment at a random point
-     * and invokes function f.
-     *
-     * The function will be invoked with:
-     *      - a list of points: the split point and the two edges of the original segment
-     *      - a list of segments: the two new segments after the split
-     * and should return a road system transformation function (RoadSystem -> RoadSystem)
-     */
-    const splitAnd = (f) => (oldSegment) =>
-    {
-        const pointOnLine = (a, b, x) => roundPoint(a.add(b.subtract(a).multiply(x)))
-        const splitPoint = pointOnLine(oldSegment.from, oldSegment.to, Math.random())
-        const segmentA = RoadSegment(oldSegment.from, splitPoint, oldSegment.quality)
-        const segmentB = RoadSegment(oldSegment.to, splitPoint, oldSegment.quality)
+    const E                 = Evolution
+    const splitAnd          = E.splitAnd
+    const split             = splitAnd(R.always(R.identity))
+    const nudgeVertex       = (p) => RoadSystem.moveVertex(p, E.randomPointAround(p, E.randomPointRange))
+    const changeRoadQuality = (s) => RoadSystem.changeRoadQuality(E.randomQuality(), s) // TODO: exclude current road quality as possibility.
+    const extendSegment     = (p, quality) => RoadSystem.addSegment(RoadSegment(p, E.randomPointAround(p, E.randomPointRange), quality))
 
-        return R.pipe(
-            RoadSystem.removeSegment(oldSegment),
-            RoadSystem.addSegment(segmentA),
-            RoadSystem.addSegment(segmentB),
-            f([splitPoint, oldSegment.from, oldSegment.to],
-              [segmentA, segmentB]))
-    }
-
-
-    /**
-     * split :: RoadSegment -> (RoadSystem -> RoadSystem)
-     */
-    const split = splitAnd(R.always(R.identity))
-
-
-    /**
-     * nudgeVertex :: Point -> (RoadSystem -> RoadSystem)
-     */
-    const nudgeVertex = (p) =>
-        RoadSystem.moveVertex(p, Evolution.randomPointAround(p, Evolution.randomPointRange))
-
-
-    /**
-     * changeRoadQuality :: RoadSegment -> (RoadSystem -> RoadSystem)
-     */
-    const changeRoadQuality = (s) =>
-        RoadSystem.changeRoadQuality(Evolution.randomQuality(), s) // TODO: exclude current road quality as possibility.
-
-
-    /**
-     * extendSegment :: RoadSegment -> (RoadSystem -> RoadSystem)
-     */
-    const extendSegment = (p, quality) =>
-        RoadSystem.addSegment(RoadSegment(p, Evolution.randomPointAround(p, Evolution.randomPointRange), quality))
-
-
-    /*
+     /*
      Pick random mutation and apply it to the road system
      */
 
     const mutators = [
-        Evolution.withRandomVertexOrCity(s.problem.cities, extendSegment),
-        Evolution.withRandomVertex(nudgeVertex),
-        Evolution.withRandomVertex(RoadSystem.removeVertex),
-        Evolution.withRandomSegment(RoadSystem.removeSegment),
-        Evolution.withRandomSegment(split),
-        Evolution.withRandomSegment(splitAnd((ps, ss) => extendSegment(ps[0], ss[0].quality))),
-        Evolution.withRandomSegment(splitAnd((ps, ss) => changeRoadQuality(pickRandom(ss)))),
-        Evolution.withRandomSegment(splitAnd((ps, ss) => nudgeVertex(pickRandom(ps)))),
-        Evolution.withRandomSegment(changeRoadQuality)
+        E.pickRandomVertexOrCityAnd(s.problem.cities, extendSegment),
+        E.pickRandomVertexAnd(nudgeVertex),
+        E.pickRandomVertexAnd(RoadSystem.removeVertex),
+        E.pickRandomSegmentAnd(RoadSystem.removeSegment),
+        E.pickRandomSegmentAnd(split),
+        E.pickRandomSegmentAnd(splitAnd((ps, ss) => extendSegment(ps[0], ss[0].quality))),
+        E.pickRandomSegmentAnd(splitAnd((ps, ss) => changeRoadQuality(pickRandom(ss)))),
+        E.pickRandomSegmentAnd(splitAnd((ps, ss) => nudgeVertex(pickRandom(ps)))),
+        E.pickRandomSegmentAnd(changeRoadQuality)
         ]
 
     const mutator = pickRandom(mutators)
@@ -122,11 +74,12 @@ Evolution.mutate = (s) =>
  */
 Evolution.nextIteration = (weightFunction, s) =>
 {
-    const newState = Evolution.mutate(s)
-    const costFunction = (s) => R.sum(weightFunction(s.currentCost))
-    const shouldPromote = (costFunction(newState) < costFunction(s))
-    const nextState = shouldPromote ? newState : s
-    const increaseCounter = R.over(R.lensProp('evolution'), R.inc)
+    const newState          = Evolution.mutate(s)
+    const costFunction      = (s) => R.sum(weightFunction(s.currentCost))
+    const shouldPromote     = (costFunction(newState) < costFunction(s))
+    const nextState         = shouldPromote ? newState : s
+    const increaseCounter   = R.over(R.lensProp('evolution'), R.inc)
+    
     return increaseCounter(nextState)
 }
 
@@ -153,9 +106,37 @@ Evolution.randomQuality = () => randomInt(RoadQuality.SUPER_HIGHWAY+1)
 
 
 /**
- * withRandomSegment :: (RoadSegment -> RoadSystem) -> (RoadSystem -> RoadSystem)
+ * splitAnd :: ([Point] -> [RoadSegment] -> (RoadSystem -> RoadSystem)) -> RoadSegment -> (RoadSystem -> RoadSystem)
+ *
+ * Returns a function that, when given a road segment, creates a
+ * road transformation function that splits the segment at a random point
+ * and invokes function f.
+ *
+ * The function will be invoked with:
+ *      - a list of points: the split point and the two edges of the original segment
+ *      - a list of segments: the two new segments after the split
+ * and should return a road system transformation function (RoadSystem -> RoadSystem)
  */
-Evolution.withRandomSegment = (f) => (roadSystem) =>
+Evolution.splitAnd = (f) => (oldSegment) =>
+{
+    const pointOnLine = (a, b, x) => roundPoint(a.add(b.subtract(a).multiply(x)))
+    const splitPoint  = pointOnLine(oldSegment.from, oldSegment.to, Math.random())
+    const segmentA    = RoadSegment(oldSegment.from, splitPoint, oldSegment.quality)
+    const segmentB    = RoadSegment(oldSegment.to, splitPoint, oldSegment.quality)
+
+    return R.pipe(
+        RoadSystem.removeSegment(oldSegment),
+        RoadSystem.addSegment(segmentA),
+        RoadSystem.addSegment(segmentB),
+        f([splitPoint, oldSegment.from, oldSegment.to],
+          [segmentA, segmentB]))
+}
+
+
+/**
+ * pickRandomSegmentAnd :: (RoadSegment -> RoadSystem) -> (RoadSystem -> RoadSystem)
+ */
+Evolution.pickRandomSegmentAnd = (f) => (roadSystem) =>
     ((roadSystem.segments.length > 0)
         ? f(pickRandom(roadSystem.segments))
         : R.identity)
@@ -163,9 +144,9 @@ Evolution.withRandomSegment = (f) => (roadSystem) =>
 
 
 /**
- * withRandomVertex :: (Point -> RoadSystem) -> (RoadSystem -> RoadSystem)
+ * pickRandomVertexAnd :: (Point -> RoadSystem) -> (RoadSystem -> RoadSystem)
  */
-Evolution.withRandomVertex = (f) => (roadSystem) =>
+Evolution.pickRandomVertexAnd = (f) => (roadSystem) =>
     ((roadSystem.segments.length > 0)
         ? f(pickRandom(RoadSegment.vertices(roadSystem.segments)))
         : R.identity)
@@ -173,9 +154,9 @@ Evolution.withRandomVertex = (f) => (roadSystem) =>
 
 
 /**
- * withRandomVertexOrCity :: [Point] -> (Point -> RoadSystem) -> (RoadSystem -> RoadSystem)
+ * pickRandomVertexOrCityAnd :: [Point] -> (Point -> RoadSystem) -> (RoadSystem -> RoadSystem)
  */
-Evolution.withRandomVertexOrCity = (cities, f) => (roadSystem) =>
+Evolution.pickRandomVertexOrCityAnd = (cities, f) => (roadSystem) =>
     f(pickRandom(R.concat(cities, RoadSegment.vertices(roadSystem.segments))))
     (roadSystem)
 

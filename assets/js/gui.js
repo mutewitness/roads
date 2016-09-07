@@ -44,6 +44,7 @@ GUI.State = (s) => ({
      * appState :: State
      */
     appState: s,
+
     /**
      * layers :: {k: Layer (Paper)}
      */
@@ -53,14 +54,16 @@ GUI.State = (s) => ({
      * running: bool
      */
     running: false,
+
     /**
      * selectedCity :: int
      */
     selectedCity: -1,
+
     /**
-     * userInteraction :: bool
+     * userInteracting :: bool
      */
-    userInteraction: false
+    userInteracting: false
 })
 
 
@@ -155,14 +158,14 @@ GUI.onButtonResetClicked = (ev, s) =>
  * onDocumentMouseDown :: (event) -> GUI.State -> GUI.State
  */
 GUI.onDocumentMouseDown = (ev, s) =>
-    R.assoc('userInteraction', true, s)
+    R.assoc('userInteracting', true, s)
 
 
 /**
  * onDocumentMouseUp :: (event) -> GUI.State -> GUI.State
  */
 GUI.onDocumentMouseMove = (ev, s) =>
-    R.when(R.prop('userInteraction'),
+    R.when(R.prop('userInteracting'),
            GUI.updateControls)(s)
 
 
@@ -170,14 +173,14 @@ GUI.onDocumentMouseMove = (ev, s) =>
  * onDocumentMouseUp :: (event) -> GUI.State -> GUI.State
  */
 GUI.onDocumentMouseUp = (ev, s) =>
-    R.assoc('userInteraction', false, s)
+    R.assoc('userInteracting', false, s)
 
 
 /**
  * onFrame :: (event) -> GUI.State -> GUI.State
  */
 GUI.onFrame = (ev) =>
-    R.when((s) => (s.running && !s.userInteraction),
+    R.when((s) => (s.running && !s.userInteracting),
            GUI.nextIteration())
 
 
@@ -206,7 +209,7 @@ GUI.onMouseUp = (event) =>
  */
 GUI.onMouseDrag = (event) => (s) =>
     R.when((s) => -1 != s.selectedCity,
-           R.pipe(GUI.transformState(State.transformProblem(ProblemDescription.setCity(s.selectedCity, GUI.unproject(event.point)))),
+           R.pipe(GUI.transformProblem()(ProblemDescription.setCity(s.selectedCity, GUI.unproject(event.point))),
                   GUI.updateCities
           ))(s)
 
@@ -258,6 +261,16 @@ GUI.run = () =>
  * sliders :: () -> [DOMElement]
  */
 GUI.sliders = () => ['w0', 'w1', 'w2'].map(elementById)
+
+
+/**
+ * transformProblem :: (ProblemDescription -> ProblemDescription) -> (GUI.State -> GUI.State)
+ *
+ * Applies given transformation function to the problem description and
+ * wraps it in a new GUI state.
+ */
+GUI.transformProblem = () =>
+    R.compose(GUI.transformState, State.transformProblem)
 
 
 /**
@@ -377,8 +390,9 @@ GUI.updateMap = (s) =>
  */
 GUI.updateRoads = (s) =>
 {
-    const style = (segment) => R.merge(GUI.styles.roads[segment.quality], {layer: s.layers.road})
-    const createPath = (segment) => new Path(R.merge(style(segment), { segments: [segment.from, segment.to].map(GUI.project) }))
+    const style         = (segment) => GUI.styles.roads[segment.quality]
+    const pathOptions   = (segment) => ({segments: [segment.from, segment.to].map(GUI.project), layer: s.layers.road})
+    const createPath    = (segment) => new Path(R.merge(style(segment), pathOptions(segment)))
 
     s.layers.roads.activate()
     s.layers.roads.removeChildren()
