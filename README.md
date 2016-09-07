@@ -12,6 +12,7 @@ Some notes regarding code style:
  * All variables are declared constant (except for namespaces)
  * Arrow functions are used extensively to promote a compacter style.
  * I use point-free style functions whenever I can. Unfortunately this is not always possible, because not all functions have been necessarily declared.
+ * This is an exercise in functional programming. Except for Paperjs related code, there are no class instantiations or prototypes involved.
 
 ### Links
 
