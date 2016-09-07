@@ -320,7 +320,7 @@ GUI.updateCities = (s) =>
  */
 GUI.updateControls = (s) =>
 {
-    elementById('btn-start').innerText = s.running ? 'Pause' : 'Start';
+    elementById('btn-start').innerHTML = s.running ? 'Pause' : 'Start';
 
     /* update the visual slider values to reflect the normalized weights. */
     const w = GUI.applyCustomWeights([1,1,1])
@@ -408,7 +408,7 @@ GUI.updateRoads = (s) =>
  */
 GUI.updateStatistics = (s) =>
 {
-    elementById('evolutions').innerText = s.appState.evolution;
+    elementById('evolutions').innerHTML = s.appState.evolution;
     return s
 }
 
