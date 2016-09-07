@@ -8,10 +8,10 @@ See the [online demo](http://mutewitness.net/roads) here.
 ### Coding style
 
 Some notes regarding code style:
- * Save some functions having to do with the GUI (Paper framework), there are no functions with side-effects.
- * All variables are declared constant (except for some objects we use to denote namespaces, eg. GUI)
- * Nearly all functions are arrow functions to promote a compacter style; except for functions with a return statement.
-
+ * Except some GUI/Paperjs related ones, all functions are pure and have no side effects.
+ * All variables are declared constant (except for namespaces)
+ * Arrow functions are used extensively to promote a compacter style.
+ * I use point-free style functions whenever I can. Unfortunately this is not always possible, because not all functions have been necessarily declared.
 
 ### Links
 
