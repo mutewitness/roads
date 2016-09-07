@@ -1,28 +1,18 @@
 /**
  * ================================================================================
- * ROAD GENERATION AND MULTIPLE CONSTRAINTS
  *
- * Demonstrates a genetic algorithm for creating road systems based
- * on cost function.
+ *  State object.
  *
- * Uses Rambda to emphasize a purer functional programming style in JavaScript.
- * Except for some parts of the GUI code, there are no internal state variables
- * that change or other side-effects.
+ *  The state holds all information of this session, except
+ *  for GUI state variables (see GUIState).
  *
- * Uses Paper.js for rendering of vector graphics.
- *
- * by Sander van de Merwe (sandervdmerwe@gmail.com)
  * ================================================================================
  */
-
+ 
 
 /**
  * State :: ProblemDescription -> State
- *
  * Constructs a new state object.
- *
- * The state holds all information of this session, except
- * for GUI state variables (see GUIState)
  */
 var State = (problem) => (
 {
@@ -71,12 +61,13 @@ State.newState = (problem) =>
 State.newTrainingSet = (s) =>
 {
     /* for every city, pick a few target commute cities */
+
     const n = 3 // how many destinations per city?
 
     const validDestinations = (origin) => R.without([origin], s.problem.cities)
     const randomPath        = (origin) => [origin, pickRandom(validDestinations(origin))]
     const destinations      = (origin) => R.times(() => randomPath(origin), n)
-    const newSet            = R.reduce((acc, value) => acc.concat(destinations(value)), [], s.problem.cities)
+    const newSet            = R.chain(destinations, s.problem.cities)
 
     return State.setTrainingSet(newSet, s)
 }

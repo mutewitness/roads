@@ -1,29 +1,13 @@
 /**
  * ================================================================================
- * ROAD GENERATION AND MULTIPLE CONSTRAINTS
  *
- * Demonstrates a genetic algorithm for creating road systems based
- * on cost function.
+ *  The road system.
  *
- * Uses Rambda to emphasize a purer functional programming style in JavaScript.
- * Except for some parts of the GUI code, there are no internal state variables
- * that change or other side-effects.
+ *  A road system is a collection of segments. Each segment has a .from and .to property,
+ *  defining the line geometry of the road.
  *
- * Uses Paper.js for rendering of vector graphics.
- *
- * by Sander van de Merwe (sandervdmerwe@gmail.com)
  * ================================================================================
  */
-
-
-/*
-
-The road system.
-
-A road system is a collection of segments. Each segment has a .from and .to property,
-defining the line geometry of the road.
-
-*/
 
 
 // --------------------------------------------------------------------------------
@@ -146,6 +130,7 @@ RoadSegment.keyOfAB = (a, b) => {
 
 /**
  * vertices :: [RoadSegment] -> [Point]
+ * Returns all (distinct) vertices of all given segments.
  */
 RoadSegment.vertices = (segments) =>
     R.uniqWith( (a, b) => a.equals(b),
@@ -194,12 +179,10 @@ RoadSystem.keyOfPoint = (p) => (p.x + '|' + p.y)
 RoadSystem.addSegment = (segment, roadSystem) =>
 {
     /*
-     Determine if segment we try to add intersects
-     with any existing segment.
+     Determine if segment we try to add intersects with any existing segment.
 
-     If it does, remove the conflicting segment and
-     re-add all sub-segments, recursively calling
-     this function.
+     If it does, remove the conflicting segment and re-add all sub-segments,
+     recursively calling this function.
 
      If it doesn't, add the segment.
      */
@@ -207,13 +190,13 @@ RoadSystem.addSegment = (segment, roadSystem) =>
     function deconflict(conflictingSegment)
     {
         const intersection = roundPoint(RoadSegment.intersection(segment, conflictingSegment))
+        const stitch = (p, quality) => RoadSystem.addSegment(RoadSegment(intersection, p, quality))
         return R.pipe(
             RoadSystem.removeSegment(conflictingSegment),
-            RoadSystem.addSegment(RoadSegment(intersection, segment.from, segment.type)),
-            RoadSystem.addSegment(RoadSegment(intersection, segment.to, segment.type)),
-            RoadSystem.addSegment(RoadSegment(intersection, conflictingSegment.from, conflictingSegment.type)),
-            RoadSystem.addSegment(RoadSegment(intersection, conflictingSegment.to, conflictingSegment.type))
-          )
+            stitch(segment.from, segment.type),
+            stitch(segment.to, segment.type),
+            stitch(conflictingSegment.from, conflictingSegment.type),
+            stitch(conflictingSegment.to, conflictingSegment.type))
     }
 
     function performChanges(roadSystem)
@@ -246,8 +229,7 @@ RoadSystem.addNonIntersectingSegment = (segment) =>
     return R.compose(
         addConnectionToSystem(segment.from, segment.to),
         addConnectionToSystem(segment.to, segment.from),
-        addSegmentToMap
-        )
+        addSegmentToMap)
 }
 
 
@@ -314,6 +296,7 @@ RoadSystem.removeSegment = (segment, roadSystem) =>
 {
     //const removeFromMap       = (a, b) => (tbl) => R.mergeWith(R.flip(R.without), tbl, R.objOf(RoadSystem.keyOfPoint(a), [b]))
 
+    // optimized for performance
     function removeFromMap(a, b) {
         return (tbl) => {
             const k = RoadSystem.keyOfPoint(a)

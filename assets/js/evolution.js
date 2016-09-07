@@ -1,17 +1,8 @@
 /**
  * ================================================================================
- * ROAD GENERATION AND MULTIPLE CONSTRAINTS
  *
- * Demonstrates a genetic algorithm for creating road systems based
- * on cost function.
+ *  The genetic algorithm.
  *
- * Uses Rambda to emphasize a purer functional programming style in JavaScript.
- * Except for some parts of the GUI code, there are no internal state variables
- * that change or other side-effects.
- *
- * Uses Paper.js for rendering of vector graphics.
- *
- * by Sander van de Merwe (sandervdmerwe@gmail.com)
  * ================================================================================
  */
 
@@ -63,12 +54,12 @@ Evolution.mutate = (s) =>
         const segmentA = RoadSegment(oldSegment.from, splitPoint, oldSegment.quality)
         const segmentB = RoadSegment(oldSegment.to, splitPoint, oldSegment.quality)
 
-        return R.pipe( RoadSystem.removeSegment(oldSegment),
-                       RoadSystem.addSegment(segmentA),
-                       RoadSystem.addSegment(segmentB),
-                       f([splitPoint, oldSegment.from, oldSegment.to],
-                         [segmentA, segmentB])
-                       )
+        return R.pipe(
+            RoadSystem.removeSegment(oldSegment),
+            RoadSystem.addSegment(segmentA),
+            RoadSystem.addSegment(segmentB),
+            f([splitPoint, oldSegment.from, oldSegment.to],
+              [segmentA, segmentB]))
     }
 
 
@@ -150,9 +141,9 @@ Evolution.randomPointRange = 3
  * randomPointAround :: Point -> int -> Point
  */
 Evolution.randomPointAround = (p, r) =>
-    p.add(new Point(-r+randomInt(2*r+1),
-                    -r+randomInt(2*r+1)
-                    ))
+    p.add(new Point(
+        -r+randomInt(2*r+1),
+        -r+randomInt(2*r+1)))
 
 
 /**

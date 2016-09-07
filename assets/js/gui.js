@@ -1,23 +1,14 @@
 /**
  * ================================================================================
- * ROAD GENERATION AND MULTIPLE CONSTRAINTS
  *
- * Demonstrates a genetic algorithm for creating road systems based
- * on cost function.
+ *  The graphical user interface code and GUI state object.
  *
- * Uses Rambda to emphasize a purer functional programming style in JavaScript.
- * Except for some parts of the GUI code, there are no internal state variables
- * that change or other side-effects.
- *
- * Uses Paper.js for rendering of vector graphics.
- *
- * by Sander van de Merwe (sandervdmerwe@gmail.com)
  * ================================================================================
  */
 
 /*
-Note: All GUI functions are dirty in the sense that they produce side-effects
-      by using the Paper framework.
+All GUI functions are dirty in the sense that they produce side-effects
+by using the Paper framework.
 */
 
 var GUI =
@@ -75,6 +66,8 @@ GUI.State = (s) => ({
 
 /**
  * applyCustomWeights :: [float] -> [float]
+ * Applies user-defined weights (the sliders) to the given vector
+ * and returns a new vector.
  */
 GUI.applyCustomWeights = (xs) =>
 {
@@ -148,9 +141,7 @@ GUI.nextIteration = () =>
  * onButtonStartClicked :: (event) -> GUI.State -> GUI.State
  */
 GUI.onButtonStartClicked = (ev, s) =>
-    GUI.updateControls(
-            R.over(R.lensProp('running'), R.not, s)
-            )
+    GUI.updateControls(R.over(R.lensProp('running'), R.not, s))
 
 
 /**
@@ -186,8 +177,8 @@ GUI.onDocumentMouseUp = (ev, s) =>
  * onFrame :: (event) -> GUI.State -> GUI.State
  */
 GUI.onFrame = (ev) =>
-    R.when( (s) => (s.running && !s.userInteraction),
-            GUI.nextIteration() )
+    R.when((s) => (s.running && !s.userInteraction),
+           GUI.nextIteration())
 
 
 /**
@@ -247,7 +238,7 @@ GUI.run = () =>
     /* setup event handlers */
 
     const transformStateWith = (f) => (event) => { s = f(event)(s) }
-    const onClick = (id) => (f) => document.getElementById(id).addEventListener('click', f)
+    const onClick = (id) => (f) => elementById(id).addEventListener('click', f)
 
     view.onFrame      = transformStateWith(GUI.onFrame)
     view.onMouseDown  = transformStateWith(GUI.onMouseDown)
@@ -266,9 +257,7 @@ GUI.run = () =>
 /**
  * sliders :: () -> [DOMElement]
  */
-GUI.sliders = () =>
-    ['w0', 'w1', 'w2'].map(
-        (id) => document.getElementById(id)) // cannot invoke directly?
+GUI.sliders = () => ['w0', 'w1', 'w2'].map(elementById)
 
 
 /**
@@ -318,7 +307,7 @@ GUI.updateCities = (s) =>
  */
 GUI.updateControls = (s) =>
 {
-    document.getElementById('btn-start').innerText = s.running ? 'Pause' : 'Start';
+    elementById('btn-start').innerText = s.running ? 'Pause' : 'Start';
 
     /* update the visual slider values to reflect the normalized weights. */
     const w = GUI.applyCustomWeights([1,1,1])
@@ -335,12 +324,12 @@ GUI.updateControls = (s) =>
  */
 GUI.updateMap = (s) =>
 {
-    const mapSize = s.appState.problem.mapSize
-    const projectedSize = GUI.project(new Point(mapSize))
-    const style = R.merge(GUI.styles.grid, {layer: s.layers.map})
-    const verticalLine = (i) => [new Point(i, 0), new Point(i, mapSize.height)]
-    const horizontalLine = (i) => [new Point(0, i), new Point(mapSize.width, i)]
-    const pathOf = (lst) => new Path(R.merge(style, {segments: lst.map(GUI.project)}))
+    const mapSize           = s.appState.problem.mapSize
+    const projectedSize     = GUI.project(new Point(mapSize))
+    const style             = R.merge(GUI.styles.grid, {layer: s.layers.map})
+    const verticalLine      = (i)   => [new Point(i, 0), new Point(i, mapSize.height)]
+    const horizontalLine    = (i)   => [new Point(0, i), new Point(mapSize.width, i)]
+    const pathOf            = (lst) =>  new Path(R.merge(style, {segments: lst.map(GUI.project)}))
 
     view.viewSize = new Size(projectedSize)
 
@@ -405,7 +394,7 @@ GUI.updateRoads = (s) =>
  */
 GUI.updateStatistics = (s) =>
 {
-    document.getElementById('evolutions').innerText = s.appState.evolution;
+    elementById('evolutions').innerText = s.appState.evolution;
     return s
 }
 

@@ -1,22 +1,4 @@
 /**
- * ================================================================================
- * ROAD GENERATION AND MULTIPLE CONSTRAINTS
- *
- * Demonstrates a genetic algorithm for creating road systems based
- * on cost function.
- *
- * Uses Rambda to emphasize a purer functional programming style in JavaScript.
- * Except for some parts of the GUI code, there are no internal state variables
- * that change or other side-effects.
- *
- * Uses Paper.js for rendering of vector graphics.
- *
- * by Sander van de Merwe (sandervdmerwe@gmail.com)
- * ================================================================================
- */
-
-
-/**
  * ProblemDescription :: {k: *} -> ProblemDescription
  */
 var ProblemDescription = (opts) => R.merge(

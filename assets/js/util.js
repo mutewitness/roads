@@ -1,24 +1,15 @@
 /**
  * ================================================================================
- * ROAD GENERATION AND MULTIPLE CONSTRAINTS
- * 
- * Demonstrates a genetic algorithm for creating road systems based
- * on cost function.
- * 
- * Uses Rambda to emphasize a purer functional programming style in JavaScript.
- * Except for some parts of the GUI code, there are no internal state variables
- * that change or other side-effects.  
- * 
- * Uses Paper.js for rendering of vector graphics. 
- *  
- * by Sander van de Merwe (sandervdmerwe@gmail.com)
+ *
+ *  Utility functions.
+ *
  * ================================================================================
  */
 
 
 /**
  * curryAll :: object -> object
- * Applies R.curry(..) to all found functions in object. 
+ * Applies R.curry(..) to all found functions in object.
  */
 function curryAll(clazz)
 {
@@ -31,15 +22,28 @@ function curryAll(clazz)
 
 
 /**
- * multiplyVectors :: [float] -> [float] -> [float]
+ * elementById :: string -> DOMElement
  */
-function multiplyVectors(a, b) {
+function elementById(id)
+{
+    return document.getElementById(id)
+}
+
+
+/**
+ * multiplyVectors :: [float] -> [float] -> [float]
+ * Returns element-wise multipication of given vectors.
+ */
+function multiplyVectors(a, b)
+{
+    console.assert(a.length == b.length)
     var result = [];
     result.length = a.length;
     for (var i=0, n=a.length; i<n; i++)
         result[i] = a[i] * b[i];
     return result;
 }
+
 
 /**
  * randomBool :: bool
@@ -71,23 +75,19 @@ function randomInt(ub)
 }
 
 
-///**
-// * softmax :: [float] -> [float]
-// * 
-// * Calculates the normalized exponential values of given array.
-// */
-//function softmax(xs)
-//{
-//    const exps = xs.map(Math.exp)
-//    return exps.map(R.multiply(1.0/exps.reduce(R.add)))
-//}
-//
+/**
+ * sumBy :: (a -> b) -> [a] -> b
+ */
+function sumBy(f, lst)
+{
+    return R.reduce((acc, x) => acc + f(x), 0, lst)
+}
 
 /**
  * normalizeVector :: [float] -> [float]
+ * Returns normalized vector.
  */
 function normalizeVector(xs)
 {
     return xs.map(R.multiply(1.0/xs.reduce(R.add)))
 }
-

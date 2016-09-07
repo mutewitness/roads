@@ -1,23 +1,12 @@
 /**
  * ================================================================================
- * ROAD GENERATION AND MULTIPLE CONSTRAINTS
- * 
- * Demonstrates a genetic algorithm for creating road systems based
- * on cost function.
- * 
- * Uses Rambda to emphasize a purer functional programming style in JavaScript.
- * Except for some parts of the GUI code, there are no internal state variables
- * that change or other side-effects.  
- * 
- * Uses Paper.js for rendering of vector graphics. 
- *  
- * by Sander van de Merwe (sandervdmerwe@gmail.com)
+ *
+ *  Geometry utility functions.
+ *
  * ================================================================================
  */
 
 /*
-Geometry utility functions.
- 
 Note: implementation of the lineLineIntersection and pointLineDistance
 functions are borrowed from the internet; author unbeknownst by me.
 */
@@ -26,7 +15,7 @@ functions are borrowed from the internet; author unbeknownst by me.
 /**
  * lineLineIntersection :: Point -> Point -> Point -> Point -> Point
  */
-function lineLineIntersection(a1, a2, b1, b2) 
+function lineLineIntersection(a1, a2, b1, b2)
 {
     const ua_t = (b2.x - b1.x) * (a1.y - b1.y) - (b2.y - b1.y) * (a1.x - b1.x)
     const ub_t = (a2.x - a1.x) * (a1.y - b1.y) - (a2.y - a1.y) * (a1.x - b1.x)
@@ -41,7 +30,7 @@ function lineLineIntersection(a1, a2, b1, b2)
                 // perfect connection; threat it as non-intersecting.
                 return null;
             }
-            
+
             return new Point(
                     a1.x + ua * (a2.x - a1.x),
                     a1.y + ua * (a2.y - a1.y))
@@ -72,11 +61,11 @@ function lineLineIntersection(a1, a2, b1, b2)
 //        const isOnLine = (a, b, c) => {
 //            return a.getDistance(b) == a.getDistance(c) + b.getDistance(c)
 //        }
-//        
+//
 //        if (isOnLine(a, b, f) && isOnLine(a, b, g))
 //            return [f, g]
 //    }
-//    
+//
 //    return null
 //}
 
@@ -102,7 +91,7 @@ function pointLineDistance(p, a, b)
     const dot   = A * C + B * D
     const lenSq = C * C + D * D
     const param = (lenSq != 0) ? (dot / lenSq) : -1
-    
+
     var xx, yy;
 
     if (param < 0) {
@@ -118,9 +107,9 @@ function pointLineDistance(p, a, b)
 
     const dx = p.x - xx;
     const dy = p.y - yy;
-    
+
     return Math.sqrt(dx * dx + dy * dy);
-    
+
 }
 
 
@@ -135,36 +124,35 @@ function roundPoint(p)
 }
 
 
-/**
- * raytrace :: Point -> Point -> [Point]
- */
-function raytrace(a, b)
-{
-    const dx = Math.abs(b.x - a.x)
-    const dy = Math.abs(b.y - a.y)
-    const xInc = (b.x > a.x) ? 1 : -1
-    const yInc = (b.y > a.y) ? 1 : -1
-
-    var error = dx - dy
-    var x = a.x
-    var y = a.y
-    var n = 1 + dx + dy
-    
-    var tiles = []
-
-    for (; n > 0; --n)
-    {
-        tiles.push(new Point(x, y))
-
-        if (error > 0) {
-            x += xInc
-            error -= dy*2
-        } else {
-            y += yInc
-            error += dx*2
-        }
-    }
-    
-    return tiles
-}
-
+// /**
+//  * raytrace :: Point -> Point -> [Point]
+//  */
+// function raytrace(a, b)
+// {
+//     const dx = Math.abs(b.x - a.x)
+//     const dy = Math.abs(b.y - a.y)
+//     const xInc = (b.x > a.x) ? 1 : -1
+//     const yInc = (b.y > a.y) ? 1 : -1
+//
+//     var error = dx - dy
+//     var x = a.x
+//     var y = a.y
+//     var n = 1 + dx + dy
+//
+//     var tiles = []
+//
+//     for (; n > 0; --n)
+//     {
+//         tiles.push(new Point(x, y))
+//
+//         if (error > 0) {
+//             x += xInc
+//             error -= dy*2
+//         } else {
+//             y += yInc
+//             error += dx*2
+//         }
+//     }
+//
+//     return tiles
+// }

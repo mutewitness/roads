@@ -1,54 +1,53 @@
 /**
  * ================================================================================
- * ROAD GENERATION AND MULTIPLE CONSTRAINTS
  *
- * Demonstrates a genetic algorithm for creating road systems based
- * on cost function.
+ *  Cost evaluators for the genetic algorithm.
  *
- * Uses Rambda to emphasize a purer functional programming style in JavaScript.
- * Except for some parts of the GUI code, there are no internal state variables
- * that change or other side-effects.
- *
- * Uses Paper.js for rendering of vector graphics.
- *
- * by Sander van de Merwe (sandervdmerwe@gmail.com)
  * ================================================================================
  */
-
 
 /**
  * CommuteTimeEvaluator :: State -> float
  */
 function CommuteTimeEvaluator(s)
 {
-    const noRoadTravelTime  = 10.0
-    const travelTime        = [3.0, 1.5, 1.0]
+    const missingRoadPenalty = 10.0
+    const travelTimeCost = [3.0, 1.5, 1.0]
 
-    /*
-     * commuteCost :: (Point,Point) -> float
-     */
+    // commuteCost :: (Point,Point) -> float
     function commuteCost(line)
     {
         /*
         Query all segments we would travel on if going from
         point line[0] to line[1], and multiply their lengths
-        by the travel time factor as defined in travelTime
+        by the travel time factor as defined in travelTimeCost
         (depending on the quality of the road.)
 
         The first and last parts of the route are possibly off-road.
-        In that case the factor noRoadTravelTime will be used instead.
+        Apply a penalty.
          */
-        const path       = RoadSystem.path(line[0], line[1], s.roads)
-        const segments   = R.zip(path, R.tail(path)).map((pair) => RoadSystem.findSegment(pair[0], pair[1], s.roads))
-        const onTheRoad  = R.reduce((acc, segment) => acc + travelTime[segment.quality] * segment.length, 0, segments)
-        const offTheRoad = noRoadTravelTime * (pointPointDistance(line[0], R.head(path)) + pointPointDistance(line[1], R.last(path)))
-        return onTheRoad + offTheRoad
+
+        /* First query all road vertices we would travel on if going from point line[0] to line[1]. */
+        const path = RoadSystem.path(line[0], line[1], s.roads)
+
+        /* Find all segments between the vertices on the path. */
+        const segments = R.zip(path, R.tail(path)).map(
+            (pair) => RoadSystem.findSegment(pair[0], pair[1], s.roads))
+
+        /* Sum the travel time cost of all found segments. */
+        const segmentCost = (segment) => travelTimeCost[segment.quality] * segment.length
+        const totalCost = sumBy(segmentCost, segments)
+
+        /* Calculate the cost for missing segments */
+        const penalty = missingRoadPenalty * (pointPointDistance(line[0], R.head(path)) + pointPointDistance(line[1], R.last(path)))
+
+        return totalCost + penalty
     }
 
     // The maximum possible travel cost for given segment (having no roads at all)
-    const maximumCost = (line) => noRoadTravelTime * pointPointDistance(line[0], line[1])
+    const maximumCost = (line) => missingRoadPenalty * pointPointDistance(line[0], line[1])
 
-    return R.sum(s.trainingSet.map(commuteCost)) / R.sum(s.trainingSet.map(maximumCost))
+    return sumBy(commuteCost, s.trainingSet) / sumBy(maximumCost, s.trainingSet)
 }
 
 
@@ -64,7 +63,7 @@ function FinancialEvaluator(s)
     // The maximum possible cost cost for given segment (constructing highways everywhere)
     const maximumCost = (line) => segmentCost(RoadSegment(line[0], line[1], RoadQuality.SUPER_HIGHWAY))
 
-    return R.sum(s.roads.segments.map(segmentCost)) / R.sum(s.trainingSet.map(maximumCost))
+    return sumBy(segmentCost, s.roads.segments) / sumBy(maximumCost, s.trainingSet)
 }
 
 
@@ -102,10 +101,10 @@ function NoiseEvaluator(s)
     //    const noiseMap = R.reduce((m, segment) =>
     //        R.mergeWith(R.max, m, occupiedTiles(segment)), {})
 
-    const cityNoise = (city) => R.reduce((acc, segment) => acc + segmentNoise(city, segment), 0, s.roads.segments)
+    const cityNoise = (city) => sumBy(R.curry(segmentNoise)(city), s.roads.segments)
 
     // The maximum possible cost for given city. (having an highway at zero distance)
     const maximumCost = s.problem.cities.length * roadQualityNoise[RoadQuality.SUPER_HIGHWAY]
 
-    return R.sum(s.problem.cities.map(cityNoise)) / maximumCost
+    return sumBy(cityNoise, s.problem.cities) / maximumCost
 }

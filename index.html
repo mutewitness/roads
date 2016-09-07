@@ -3,27 +3,24 @@
     <link href='//fonts.googleapis.com/css?family=Roboto' rel='stylesheet' type='text/css'>
     <script type='text/javascript' src='//cdnjs.cloudflare.com/ajax/libs/ramda/0.21.0/ramda.js'></script>
     <script type='text/javascript' src='//cdnjs.cloudflare.com/ajax/libs/paper.js/0.10.2/paper-full.min.js'></script>
-    <link rel='stylesheet' type='text/css' href='app.css'/>
-    <script type='text/javascript' src='util.js'></script>
-    <script type='text/javascript' src='evaluators.js'></script>
-    <script type='text/javascript' src='evolution.js'></script>
-    <script type='text/javascript' src='geometry.js'></script>
-    <script type='text/javascript' src='gui.js'></script>
-    <script type='text/javascript' src='problem.js'></script>
-    <script type='text/javascript' src='roadsystem.js'></script>
-    <script type='text/javascript' src='state.js'></script>
+    <link rel='stylesheet' type='text/css' href='assets/css/app.css'/>
+    <script type='text/javascript' src='assets/js/util.js'></script>
+    <script type='text/javascript' src='assets/js/evaluators.js'></script>
+    <script type='text/javascript' src='assets/js/evolution.js'></script>
+    <script type='text/javascript' src='assets/js/geometry.js'></script>
+    <script type='text/javascript' src='assets/js/gui.js'></script>
+    <script type='text/javascript' src='assets/js/problem.js'></script>
+    <script type='text/javascript' src='assets/js/roadsystem.js'></script>
+    <script type='text/javascript' src='assets/js/state.js'></script>
   </head>
   <body onload='GUI.run()'>
     <div id='options'>
-      <h1>Road generation and multiple constraints</h1>
+      <h1>Road system generation with conflicting evaluators</h1>
       <hr/>
       <p>This application will attempt to find the most optimal way to connect roads between
       the cities on the map as to minimize the cost function.</p>
-      <p>The application is an experimental approach emphasizing
-      the functional and high-level programming capabilities of JavaScript- making extensive use of the Ramda library.
-      By no means is this implementation the fastest one possible for these kind of algorithms.</p>
       <hr/>
-      <p>Use the sliders below to adjust how the cost is computed by changing the 
+      <p>Use the sliders below to adjust how the cost is computed by changing the
       respective weights given to certain characteristics of the solution.</p>
       <p>You can drag cities around.</p>
       <hr/>
