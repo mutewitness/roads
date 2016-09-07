@@ -3,7 +3,7 @@
  */
 function NoiseEvaluator(s)
 {
-    const halfDistance = 2
+    const halfDistance     = 2
     const roadQualityNoise = [0, 1.0, 3.0] // no noise for ordinary roads to facilitate generation of roads at all)
 
     // segmentNoise :: Point -> Segment -> float
@@ -30,10 +30,10 @@ function NoiseEvaluator(s)
     //    const noiseMap = R.reduce((m, segment) =>
     //        R.mergeWith(R.max, m, occupiedTiles(segment)), {})
 
-    const cityNoise     = (city) => sumBy(R.curry(segmentNoise)(city), s.roads.segments)
+    const cityNoise   = (city) => sumBy(R.curry(segmentNoise)(city), s.roads.segments)
 
     // The maximum possible cost for given city. (having an highway at zero distance)
-    const maximumCost   = s.problem.cities.length * roadQualityNoise[RoadQuality.SUPER_HIGHWAY]
+    const maximumCost = s.problem.cities.length * roadQualityNoise[RoadQuality.SUPER_HIGHWAY]
 
     return sumBy(cityNoise, s.problem.cities) / maximumCost
 }

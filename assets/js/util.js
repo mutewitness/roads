@@ -46,11 +46,12 @@ function multiplyVectors(a, b)
 
 
 /**
- * randomBool :: bool
+ * normalizeVector :: [float] -> [float]
+ * Returns normalized vector.
  */
-function randomBool()
+function normalizeVector(xs)
 {
-    return (1 == randomInt(2))
+    return xs.map(R.multiply(1.0/xs.reduce(R.add)))
 }
 
 
@@ -62,6 +63,15 @@ function pickRandom(lst)
     return (lst.length > 0)
         ? lst[randomInt(lst.length)]
         : undefined
+}
+
+
+/**
+ * randomBool :: bool
+ */
+function randomBool()
+{
+    return (1 == randomInt(2))
 }
 
 
@@ -81,13 +91,4 @@ function randomInt(ub)
 function sumBy(f, lst)
 {
     return R.reduce((acc, x) => acc + f(x), 0, lst)
-}
-
-/**
- * normalizeVector :: [float] -> [float]
- * Returns normalized vector.
- */
-function normalizeVector(xs)
-{
-    return xs.map(R.multiply(1.0/xs.reduce(R.add)))
 }

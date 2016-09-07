@@ -8,7 +8,7 @@
  *
  * ================================================================================
  */
- 
+
 
 /**
  * State :: ProblemDescription -> State
@@ -69,22 +69,22 @@ State.newTrainingSet = (s) =>
     const destinations      = (origin) => R.times(() => randomPath(origin), n)
     const newSet            = R.chain(destinations, s.problem.cities)
 
-    return State.setTrainingSet(newSet, s)
+    return State.setTrainingSet(newSet)(s)
 }
 
 
 /**
  * setRoadSystem :: RoadSystem -> State -> State
  */
-State.setRoadSystem = (newRoadSystem, s) =>
-    Evolution.evaluate(R.assoc('roads', newRoadSystem, s))
+State.setRoadSystem = (newRoadSystem) =>
+    R.compose(Evolution.evaluate, R.assoc('roads', newRoadSystem))
 
 
 /**
  * setTrainingSet :: [(Point,Point)] -> State -> State
  */
-State.setTrainingSet = (trainingSet, s) =>
-    Evolution.evaluate(R.assoc('trainingSet', trainingSet, s))
+State.setTrainingSet = (trainingSet) =>
+    R.compose(Evolution.evaluate, R.assoc('trainingSet', trainingSet))
 
 
 /**

@@ -42,14 +42,15 @@ ProblemDescription.randomizeCities = (n, problem) =>
  * setCity :: int -> Point -> ProblemDescription -> ProblemDescription
  */
 ProblemDescription.setCity = (id, location, problem) =>
-    ProblemDescription.setCities(R.update(id, location, problem.cities))(problem)
+    ProblemDescription.setCities(
+        R.update(id, location, problem.cities))
+        (problem)
 
 
 /**
  * setCity :: [Point] -> ProblemDescription -> ProblemDescription
  */
-ProblemDescription.setCities = (cities, problem) =>
-    R.assoc('cities', cities, problem)
+ProblemDescription.setCities = R.assoc('cities')
 
 
 curryAll(ProblemDescription)

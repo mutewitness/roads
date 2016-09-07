@@ -29,30 +29,31 @@ Evolution.evaluate = (s) =>
 Evolution.mutate = (s) =>
 {
     // TODO: attention mutation.
-    // TODO: variant extendSegment that connects to existing point around selected one?
+    // TODO: variant createSegment that connects to existing point around selected one?
 
     /*
      Mutation helper functions.
      */
 
     const E                 = Evolution
+    const RS                = RoadSystem
     const splitAnd          = E.splitAnd
     const split             = splitAnd(R.always(R.identity))
-    const nudgeVertex       = (p) => RoadSystem.moveVertex(p, E.randomPointAround(p, E.randomPointRange))
-    const changeRoadQuality = (s) => RoadSystem.changeRoadQuality(E.randomQuality(), s) // TODO: exclude current road quality as possibility.
-    const extendSegment     = (p, quality) => RoadSystem.addSegment(RoadSegment(p, E.randomPointAround(p, E.randomPointRange), quality))
+    const nudgeVertex       = (p) => RS.moveVertex(p, E.randomPointAround(p))
+    const changeRoadQuality = RS.changeRoadQuality(E.randomQuality()) // TODO: exclude current road quality as possibility.
+    const createSegment     = (p, quality) => RS.addSegment(RoadSegment(p, E.randomPointAround(p), quality))
 
      /*
      Pick random mutation and apply it to the road system
      */
 
     const mutators = [
-        E.pickRandomVertexOrCityAnd(s.problem.cities, extendSegment),
+        E.pickRandomVertexOrCityAnd(s.problem.cities, createSegment),
         E.pickRandomVertexAnd(nudgeVertex),
-        E.pickRandomVertexAnd(RoadSystem.removeVertex),
-        E.pickRandomSegmentAnd(RoadSystem.removeSegment),
+        E.pickRandomVertexAnd(RS.removeVertex),
+        E.pickRandomSegmentAnd(RS.removeSegment),
         E.pickRandomSegmentAnd(split),
-        E.pickRandomSegmentAnd(splitAnd((ps, ss) => extendSegment(ps[0], ss[0].quality))),
+        E.pickRandomSegmentAnd(splitAnd((ps, ss) => createSegment(ps[0], ss[0].quality))),
         E.pickRandomSegmentAnd(splitAnd((ps, ss) => changeRoadQuality(pickRandom(ss)))),
         E.pickRandomSegmentAnd(splitAnd((ps, ss) => nudgeVertex(pickRandom(ps)))),
         E.pickRandomSegmentAnd(changeRoadQuality)
@@ -60,7 +61,7 @@ Evolution.mutate = (s) =>
 
     const mutator = pickRandom(mutators)
 
-    return State.setRoadSystem(mutator(s.roads))(s)
+    return State.setRoadSystem()(mutator(s.roads))(s)
 }
 
 
@@ -79,7 +80,7 @@ Evolution.nextIteration = (weightFunction, s) =>
     const shouldPromote     = (costFunction(newState) < costFunction(s))
     const nextState         = shouldPromote ? newState : s
     const increaseCounter   = R.over(R.lensProp('evolution'), R.inc)
-    
+
     return increaseCounter(nextState)
 }
 
@@ -91,18 +92,22 @@ Evolution.randomPointRange = 3
 
 
 /**
- * randomPointAround :: Point -> int -> Point
+ * randomPointAround :: Point -> Point
  */
-Evolution.randomPointAround = (p, r) =>
-    p.add(new Point(
+Evolution.randomPointAround = (p) =>
+{
+    const r = Evolution.randomPointRange
+    return p.add(new Point(
         -r+randomInt(2*r+1),
         -r+randomInt(2*r+1)))
+}
 
 
 /**
  * randomQuality :: int
  */
-Evolution.randomQuality = () => randomInt(RoadQuality.SUPER_HIGHWAY+1)
+Evolution.randomQuality = () =>
+    randomInt(RoadQuality.SUPER_HIGHWAY+1)
 
 
 /**
