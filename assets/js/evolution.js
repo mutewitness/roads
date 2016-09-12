@@ -35,13 +35,14 @@ Evolution.mutate = (s) =>
      Mutation helper functions.
      */
 
-    const E                 = Evolution
-    const RS                = RoadSystem
-    const splitAnd          = E.splitAnd
-    const split             = splitAnd(R.always(R.identity))
-    const nudgeVertex       = (p) => RS.moveVertex(p, E.randomPointAround(p))
-    const changeRoadQuality = RS.changeRoadQuality(E.randomQuality()) // TODO: exclude current road quality as possibility.
-    const createSegment     = (p, quality) => RS.addSegment(RoadSegment(p, E.randomPointAround(p), quality))
+    const E                     = Evolution
+    const RS                    = RoadSystem
+
+    const splitAnd              = E.splitAnd
+    const split                 = splitAnd(R.always(R.identity))
+    const nudgeVertex           = (p) => RS.moveVertex(p, E.randomPointAround(p))
+    const randomizeRoadQuality  = RS.changeRoadQuality(E.randomQuality()) // TODO: exclude current road quality as possibility.
+    const createSegment         = (p, quality) => RS.addSegment(RoadSegment(p, E.randomPointAround(p), quality))
 
      /*
      Pick random mutation and apply it to the road system
@@ -54,9 +55,9 @@ Evolution.mutate = (s) =>
         E.pickRandomSegmentAnd(RS.removeSegment),
         E.pickRandomSegmentAnd(split),
         E.pickRandomSegmentAnd(splitAnd((ps, ss) => createSegment(ps[0], ss[0].quality))),
-        E.pickRandomSegmentAnd(splitAnd((ps, ss) => changeRoadQuality(pickRandom(ss)))),
+        E.pickRandomSegmentAnd(splitAnd((ps, ss) => randomizeRoadQuality(pickRandom(ss)))),
         E.pickRandomSegmentAnd(splitAnd((ps, ss) => nudgeVertex(pickRandom(ps)))),
-        E.pickRandomSegmentAnd(changeRoadQuality)
+        E.pickRandomSegmentAnd(randomizeRoadQuality)
         ]
 
     const mutator = pickRandom(mutators)

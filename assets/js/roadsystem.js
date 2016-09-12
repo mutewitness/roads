@@ -6,6 +6,9 @@
  *  A road system is a collection of segments. Each segment has a .from and .to property,
  *  defining the line geometry of the road.
  *
+ *  The road system can be modified by adding and removing of segments or
+ *  moving of individual vertices. Intersections are properly dealt with.
+ *
  * ================================================================================
  */
 
@@ -177,6 +180,9 @@ RoadSystem.keyOfPoint = (p) =>
 
 /**
  * addSegment :: RoadSegment -> RoadSystem -> RoadSystem
+ * Adds a new segment to the road system.
+ * If the added segment intersects with any existing one,
+ * the road system will automatically perform splits.
  */
 RoadSystem.addSegment = (segment, roadSystem) =>
 {
@@ -297,9 +303,8 @@ RoadSystem.path = (a, b, roadSystem) =>
  */
 RoadSystem.removeSegment = (segment, roadSystem) =>
 {
-    //const removeFromMap       = (a, b) => (tbl) => R.mergeWith(R.flip(R.without), tbl, R.objOf(RoadSystem.keyOfPoint(a), [b]))
-
     // optimized for performance
+    //const removeFromMap = (a, b) => (tbl) => R.mergeWith(R.flip(R.without), tbl, R.objOf(RoadSystem.keyOfPoint(a), [b]))
     function removeFromMap(a, b) {
         return (tbl) => {
             const k = RoadSystem.keyOfPoint(a)
@@ -328,26 +333,29 @@ RoadSystem.removeSegment = (segment, roadSystem) =>
  */
 RoadSystem.removeVertex = (p, roadSystem) =>
 {
-    /*
-    Find all segments that share a vertex with
-    requested point and remove all those segments.
-    Re-connect all segments that now miss a link.
-     */
+    /* Find all segments that share a vertex with requested point. */
 
     const connections        = roadSystem.connectionMap[RoadSystem.keyOfPoint(p)]
-    const segmentsToRemove   = connections.map(RoadSystem.findSegment(p, R.__, roadSystem))
-    const lowestRoadQuality  = R.reduce(R.min, RoadQuality.SUPER_HIGHWAY, R.pluck('quality', segmentsToRemove))
-    const allMissingLinks    = R.xprod(connections, connections)
-    const allMissingSegments = allMissingLinks.map((tup) => RoadSegment(tup[0], tup[1], lowestRoadQuality))
+    const deletions          = connections.map(RoadSystem.findSegment(p, R.__, roadSystem))
+
+    /* Instantiate replacement segments for all links that would be missing
+    if we were to remove the requested vertex.
+    Use the lowest common denominator to determine road quality. */
+
+    const lowestRoadQuality  = R.reduce(R.min, RoadQuality.SUPER_HIGHWAY, R.pluck('quality', deletions))
+    const missingLinks       = R.xprod(connections, connections).map((tup) => RoadSegment(tup[0], tup[1], lowestRoadQuality))
     const withoutEmpty       = R.reject(RoadSegment.isEmpty)
     const withoutDuplicates  = R.uniqWith(RoadSegment.equals)
-    const segmentsToAdd      = withoutEmpty(withoutDuplicates(allMissingSegments))
-    const removeSegments     = (roadSystem) => R.reduce(R.flip(RoadSystem.removeSegment), roadSystem, segmentsToRemove)
-    const addSegments        = (roadSystem) => R.reduce(R.flip(RoadSystem.addSegment), roadSystem, segmentsToAdd)
+    const additions          = withoutEmpty(withoutDuplicates(missingLinks))
 
-    return (segmentsToAdd.length <= 3) // TODO: review limit (a simplified removeVertex() that does not rejoin broken links?)
-        ? addSegments(removeSegments(roadSystem))
-        : removeSegments(roadSystem)
+    /* Apply the necessary changes to the road system. */
+
+    const applyDeletions     = (roadSystem) => R.reduce(R.flip(RoadSystem.removeSegment), roadSystem, deletions)
+    const applyAdditions     = (roadSystem) => R.reduce(R.flip(RoadSystem.addSegment), roadSystem, additions)
+
+    return (additions.length <= 3) // TODO: review limit (a simplified removeVertex() that does not rejoin broken links?)
+        ? applyAdditions(applyDeletions(roadSystem))
+        : applyDeletions(roadSystem)
 }
 
 

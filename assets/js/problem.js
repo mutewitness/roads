@@ -31,10 +31,9 @@ ProblemDescription.randomizeCities = (n, problem) =>
     const mapSize      = problem.mapSize
     const randomScalar = (n) => margin + randomInt(n-2*margin)
     const randomPoint  = () => new Point(randomScalar(mapSize.width), randomScalar(mapSize.height))
+    const newLocations = R.times(randomPoint, n)
 
-    return ProblemDescription.setCities(
-        R.times(randomPoint, n),
-        problem)
+    return ProblemDescription.setCities(newLocations, problem)
 }
 
 

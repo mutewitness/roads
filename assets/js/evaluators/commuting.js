@@ -23,7 +23,8 @@ function CommuteTimeEvaluator(s)
         const segments    = R.zip(path, R.tail(path)).map(findSegment)
         const segmentCost = (segment) => travelTimeCost[segment.quality] * segment.length
         const totalCost   = sumBy(segmentCost, segments)
-        const penalty     = missingRoadPenalty * (pointPointDistance(line[0], R.head(path)) + pointPointDistance(line[1], R.last(path)))
+        const penalty     = missingRoadPenalty * pointPointDistance(line[0], R.head(path))
+                          + missingRoadPenalty * pointPointDistance(line[1], R.last(path))
 
         return totalCost + penalty
     }

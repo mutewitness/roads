@@ -208,10 +208,17 @@ GUI.onMouseUp = (event) =>
  * onMouseDrag :: MouseEvent -> GUI.State -> GUI.State
  */
 GUI.onMouseDrag = (event) => (s) =>
-    R.when((s) => -1 != s.selectedCity,
-           R.pipe(GUI.transformProblem()(ProblemDescription.setCity(s.selectedCity, GUI.unproject(event.point))),
-                  GUI.updateCities
-          ))(s)
+{
+    /* create transformer to change the selected city's location
+    to the unprojected coordinates of the mouse cursor. */
+    const problemTransformer = ProblemDescription.setCity(
+        s.selectedCity, GUI.unproject(event.point))
+
+    return R.when(
+        (s) => -1 != s.selectedCity,
+        R.pipe(GUI.transformProblem()(problemTransformer), GUI.updateCities)
+        )(s)
+}
 
 
 /**
@@ -243,14 +250,14 @@ GUI.run = () =>
 
     /* setup event handlers */
 
-    view.onFrame          = MutableState.transform(GUI.onFrame)
-    view.onMouseDown      = MutableState.transform(GUI.onMouseDown)
-    view.onMouseUp        = MutableState.transform(GUI.onMouseUp)
-    view.onMouseDrag      = MutableState.transform(GUI.onMouseDrag)
+    view.onFrame            = MutableState.transform(GUI.onFrame)
+    view.onMouseDown        = MutableState.transform(GUI.onMouseDown)
+    view.onMouseUp          = MutableState.transform(GUI.onMouseUp)
+    view.onMouseDrag        = MutableState.transform(GUI.onMouseDrag)
 
-    document.onmouseup    = MutableState.transform(GUI.onDocumentMouseUp)
-    document.onmousedown  = MutableState.transform(GUI.onDocumentMouseDown)
-    document.onmousemove  = MutableState.transform(GUI.onDocumentMouseMove)
+    document.onmouseup      = MutableState.transform(GUI.onDocumentMouseUp)
+    document.onmousedown    = MutableState.transform(GUI.onDocumentMouseDown)
+    document.onmousemove    = MutableState.transform(GUI.onDocumentMouseMove)
 
     elementById('btn-start').onclick = MutableState.transform(GUI.onButtonStartClicked)
     elementById('btn-reset').onclick = MutableState.transform(GUI.onButtonResetClicked)
@@ -323,8 +330,8 @@ GUI.updateControls = (s) =>
     elementById('btn-start').innerHTML = s.running ? 'Pause' : 'Start';
 
     /* update the visual slider values to reflect the normalized weights. */
-    const w = GUI.applyCustomWeights([1,1,1])
-    GUI.sliders().forEach((el, i) => el.value = w[i])
+    R.zip(GUI.sliders(), GUI.applyCustomWeights([1,1,1]))
+        .forEach((tup) => tup[0].value = tup[1])
 
     return s
 }
@@ -352,33 +359,6 @@ GUI.updateMap = (s) =>
     R.times(R.compose(pathOf, verticalLine), mapSize.width)
     R.times(R.compose(pathOf, horizontalLine), mapSize.height)
 
-    // --------------------------------------------------------------------------------
-
-    //    const roadQualityNoise = [1,1,1]
-    //    const occupiedTiles = (segment) =>
-    //        R.fromPairs(raytrace(segment.from, segment.to)
-    //         .map((p) => [RoadSystem.keyOfPoint(p),
-    //                      roadQualityNoise[segment.quality]]
-    //             ))
-    //
-    //    const createNoiseMap = R.reduce((m, segment) =>
-    //        R.mergeWith(R.max, m, occupiedTiles(segment)), {})
-    //
-    //    const noiseMap = createNoiseMap(s.appState.roads.segments)
-    //
-    //    const createTile = (key, value) => {
-    //        var xy = key.split('|'),
-    //            p0 = GUI.project(new Point(parseInt(xy[0]), parseInt(xy[1]))),
-    //            p1 = GUI.project(new Point(parseInt(xy[0])+1, parseInt(xy[1])+1))
-    //        new Path.Rectangle({from: p0, to: p1, fillColor: '#ff0000'})
-    //    }
-    //
-    //    R.mapObjIndexed(
-    //            (value, key, obj) => createTile(key, value),
-    //            noiseMap)
-
-    // --------------------------------------------------------------------------------
-
     return s
 }
 
@@ -391,7 +371,8 @@ GUI.updateMap = (s) =>
 GUI.updateRoads = (s) =>
 {
     const style         = (segment) => GUI.styles.roads[segment.quality]
-    const pathOptions   = (segment) => ({segments: [segment.from, segment.to].map(GUI.project), layer: s.layers.road})
+    const pathOptions   = (segment) => ({segments: [segment.from, segment.to].map(GUI.project),
+                                         layer: s.layers.road})
     const createPath    = (segment) => new Path(R.merge(style(segment), pathOptions(segment)))
 
     s.layers.roads.activate()
